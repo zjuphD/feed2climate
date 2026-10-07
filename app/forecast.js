@@ -380,8 +380,11 @@ window.F2C_FORECAST = (function () {
       if (targets.includes(t)) {
         const fiT = phi * pop.fiPop(W, t);
         const adgT = A * gainOf(W, fiT, t);
-        const sdFi = Math.sqrt(pPhi) * pop.fiPop(W, t);
-        out.set(t, finish(W, adgT, fiT, P, o, { sdBw: Math.sqrt(sWW), sdFi, kappa: A, sdKappa: Math.sqrt(sAA), phi, sdPhi: Math.sqrt(pPhi) }));
+        const sdFi = Math.sqrt(pPhi + pop.rPhi) * pop.fiPop(W, t); // 含当天的随机波动
+        // 赖氨酸浓度 ≈ 维持/采食 + 20 × 增重/采食：增重/采食的不确定度来自 κ，维持项的来自采食
+        const R = P.requirements, g = gainOf(W, fiT, t) / fiT;
+        const sdLys = Math.sqrt(Math.pow(R.lys_gain_g_per_kg * g * Math.sqrt(sAA), 2) + Math.pow(R.lys_maint_g_per_kg75 * Math.pow(W, 0.75) * sdFi / (fiT * fiT), 2));
+        out.set(t, finish(W, adgT, fiT, P, o, { sdBw: Math.sqrt(sWW), sdFi, sdLys, kappa: A, sdKappa: Math.sqrt(sAA), phi, sdPhi: Math.sqrt(pPhi) }));
       }
       // 周末：用这一周的实测采食更新 φ
       if (wk) {
