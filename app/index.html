@@ -1,0 +1,1075 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Feed2Climate · AI 驱动的精准饲喂与模型化减排</title>
+<style>
+:root {
+  color-scheme: light dark;
+  --bg: light-dark(#f5f6f8, #181818);
+  --panel: light-dark(#ffffff, #202020);
+  --text: light-dark(#1a1c1f, #ffffff);
+  --muted: light-dark(#6b7280, #a8adb5);
+  --border: light-dark(#e4e6ea, #343434);
+  --blue: light-dark(#3399ff, #83c3ff);
+  --green: light-dark(#0a9240, #4ac777);
+  --red: light-dark(#e02e2a, #ff6764);
+  --orange: light-dark(#e25507, #fb6a22);
+  --chip: light-dark(#eef2f6, #2b2b2b);
+  --violet: light-dark(#8e5bd6, #b99bf0);
+  --teal: light-dark(#00889b, #5cc8d6);
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--bg); color: var(--text);
+  font: 14px/1.5 -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+}
+.f2c { max-width: 1140px; margin: 0 auto; padding: 0 16px 48px; }
+.f2c-top { display: flex; align-items: baseline; justify-content: space-between; padding: 18px 0 10px; flex-wrap: wrap; gap: 6px; }
+.f2c-brand { font-size: 20px; font-weight: 600; }
+.f2c-brand small { color: var(--muted); font-weight: 400; margin-left: 8px; font-size: 12px; }
+.f2c-note { color: var(--muted); font-size: 12px; }
+.tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+.tab { padding: 10px 14px; border: 0; background: none; color: var(--muted); border-bottom: 2px solid transparent; cursor: pointer; font-size: 14px; }
+.tab[aria-selected="true"] { color: var(--blue); border-bottom-color: var(--blue); font-weight: 500; }
+main { padding-top: 16px; }
+.panel { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 16px; margin-bottom: 16px; }
+.panel-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+.panel-title { font-size: 15px; font-weight: 600; margin: 0; }
+.panel-sub { color: var(--muted); font-size: 12px; }
+.grid { display: grid; gap: 12px; }
+.grid-2 { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+.grid-3 { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+.grid-4 { grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); }
+label.field { display: block; font-size: 12px; color: var(--muted); }
+label.field select, label.field input {
+  display: block; width: 100%; margin-top: 4px; padding: 7px 9px;
+  border: 1px solid var(--border); border-radius: 8px; background: var(--panel); color: var(--text); font-size: 13px;
+}
+.toggle { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+.toggle button { border: 0; background: none; padding: 7px 12px; color: var(--muted); cursor: pointer; font-size: 13px; }
+.toggle button[aria-pressed="true"] { background: var(--chip); color: var(--text); font-weight: 500; }
+.snap { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-top: 12px; }
+.snap-item { background: var(--chip); border-radius: 8px; padding: 10px 12px; }
+.snap-item .k { color: var(--muted); font-size: 12px; }
+.snap-item .v { font-size: 20px; font-weight: 500; font-variant-numeric: tabular-nums; }
+.snap-item .v small { font-size: 11px; color: var(--muted); font-weight: 400; }
+svg.chart { width: 100%; height: 280px; display: block; }
+svg.chart text { fill: var(--muted); font-size: 11px; }
+svg.chart .gridline { stroke: var(--border); stroke-width: 1; }
+svg.chart .series { stroke: var(--blue); stroke-width: 2; fill: none; }
+table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+th, td { text-align: left; padding: 8px 10px; border-top: 1px solid var(--border); font-size: 13px; }
+th { color: var(--muted); font-weight: 500; font-size: 12px; border-top: 0; }
+td.num, th.num { text-align: right; }
+.pass { color: var(--green); font-weight: 500; }
+.fail { color: var(--red); font-weight: 500; }
+.badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 500; background: var(--chip); color: var(--muted); }
+.badge.ok { background: color-mix(in srgb, var(--green) 15%, transparent); color: var(--green); }
+.badge.bad { background: color-mix(in srgb, var(--red) 15%, transparent); color: var(--red); }
+.badge.warn { background: color-mix(in srgb, var(--orange) 15%, transparent); color: var(--orange); }
+.notice { border: 1px solid var(--border); border-left: 3px solid var(--orange); border-radius: 8px; padding: 10px 12px; font-size: 13px; margin: 10px 0; }
+.notice.info { border-left-color: var(--blue); }
+.notice.bad { border-left-color: var(--red); }
+.footnote { color: var(--muted); font-size: 12px; margin-top: 8px; }
+.actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 12px; }
+button.primary { background: var(--blue); color: #fff; border: 0; border-radius: 8px; padding: 8px 16px; font-size: 13px; cursor: pointer; font-weight: 500; }
+button.ghost { background: none; border: 1px solid var(--border); color: var(--text); border-radius: 8px; padding: 7px 14px; font-size: 13px; cursor: pointer; }
+.cmp { display: grid; grid-template-columns: 1.3fr 1fr 1fr 1fr; gap: 0; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; font-size: 13px; }
+.cmp > div { padding: 9px 12px; border-top: 1px solid var(--border); }
+.cmp > div:nth-child(-n+4) { border-top: 0; background: var(--chip); color: var(--muted); font-size: 12px; }
+.cmp > div:nth-child(4n+1) { color: var(--muted); }
+.cmp .num { text-align: right; font-variant-numeric: tabular-nums; }
+.delta-down { color: var(--green); }
+.delta-up { color: var(--red); }
+.delta-zero { color: var(--muted); }
+.mono { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 12px; }
+@media (max-width: 720px) { .cmp { grid-template-columns: 1.2fr 1fr 1fr; } .cmp .col-extra { display: none; } }
+
+/* ---------- 总览页 ---------- */
+.hero { padding: 26px 18px 20px; }
+.hero h1 { font-size: 24px; margin: 0 0 8px; line-height: 1.35; }
+.hero h1 em { font-style: normal; color: var(--blue); }
+.hero p.lead { color: var(--muted); font-size: 14px; margin: 0 0 14px; max-width: 62em; }
+.claims { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; }
+.claim { border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; background: var(--chip); }
+.claim .t { font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+.claim .v { font-size: 15px; font-weight: 600; line-height: 1.45; }
+.claim .v small { display: block; font-weight: 400; color: var(--muted); font-size: 12px; margin-top: 3px; }
+.chain-wrap { overflow-x: auto; }
+svg.chain { min-width: 880px; width: 100%; height: 330px; display: block; }
+svg.chain .node { fill: var(--chip); stroke: var(--border); rx: 8; }
+svg.chain .node.input { stroke: var(--blue); }
+svg.chain .node.emis { stroke: var(--orange); }
+svg.chain .node.decision { stroke: var(--violet); stroke-width: 1.5; }
+svg.chain text { fill: var(--text); font-size: 12px; }
+svg.chain text.dim { fill: var(--muted); font-size: 11px; }
+svg.chain .edge { stroke: var(--muted); stroke-width: 1.4; fill: none; marker-end: url(#arrow); }
+.pipline { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; }
+.step { border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; position: relative; }
+.step .no { position: absolute; top: -10px; left: 12px; background: var(--violet); color: #fff; border-radius: 999px; font-size: 11px; padding: 2px 9px; font-weight: 600; }
+.step .t { font-weight: 600; margin: 4px 0 4px; font-size: 13.5px; }
+.step .d { color: var(--muted); font-size: 12.5px; }
+.step .go { margin-top: 8px; font-size: 12px; color: var(--blue); cursor: pointer; background: none; border: 0; padding: 0; }
+.step .method { display: inline-block; margin-top: 8px; margin-right: 4px; }
+
+/* ---------- AI 页 ---------- */
+.ai-controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; align-items: end; }
+.scatter-wrap { overflow-x: auto; }
+svg.scatter { min-width: 640px; width: 100%; height: 360px; display: block; }
+svg.scatter text { fill: var(--muted); font-size: 11px; }
+.legend { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; font-size: 12px; color: var(--muted); }
+.legend .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 5px; vertical-align: -1px; }
+.gcard { border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; }
+.gcard h3 { margin: 0 0 6px; font-size: 14px; display: flex; align-items: center; gap: 8px; }
+.gcard .dot { display: inline-block; width: 11px; height: 11px; border-radius: 50%; }
+.gcard .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px 10px; margin: 8px 0; font-size: 12.5px; }
+.gcard .stats .k { color: var(--muted); font-size: 11px; }
+.bar-row { display: flex; align-items: center; gap: 6px; font-size: 11.5px; margin: 3px 0; }
+.bar-row .nm { width: 9.5em; color: var(--muted); flex: none; }
+.bar-row .bar { height: 9px; border-radius: 4px; background: var(--blue); opacity: .85; flex: none; }
+.bar-row .pc { color: var(--muted); }
+.kv { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 12.5px; margin-top: 6px; }
+.kv .k { color: var(--muted); }
+.vs-head { display: grid; grid-template-columns: 1.4fr 1fr 1fr 1fr; font-size: 12px; color: var(--muted); background: var(--chip); border-radius: 8px 8px 0 0; }
+.vs-head > div, .vs-row > div { padding: 9px 12px; }
+.vs-row { display: grid; grid-template-columns: 1.4fr 1fr 1fr 1fr; border-top: 1px solid var(--border); font-size: 13px; }
+.vs-row > div:first-child { color: var(--muted); }
+.vs-row > div:not(:first-child) { text-align: right; font-variant-numeric: tabular-nums; }
+.vs-delta { border-top: 1px solid var(--border); border-radius: 0 0 8px 8px; background: var(--chip); }
+.pareto-wrap { overflow-x: auto; }
+svg.pareto { min-width: 520px; width: 100%; height: 320px; display: block; }
+svg.pareto text { fill: var(--muted); font-size: 11px; }
+input[type="range"] { width: 100%; }
+</style>
+</head>
+<body>
+<div class="f2c">
+  <div class="f2c-top">
+    <div class="f2c-brand">Feed2Climate <small>AI 驱动的育肥猪精准饲喂 · 模型化减排决策</small></div>
+    <div class="f2c-note">真实数据 · 显式参数 · 结果为“给定条件下的可行方案”与“模型化排放差异”，非实测减排</div>
+  </div>
+
+  <nav class="tabs" role="tablist" aria-label="页面">
+    <button class="tab" role="tab" aria-selected="true" data-view="overview">00 总览</button>
+    <button class="tab" role="tab" aria-selected="false" data-view="history">01 当前状态与营养检查</button>
+    <button class="tab" role="tab" aria-selected="false" data-view="ai">02 AI 方案设计</button>
+    <button class="tab" role="tab" aria-selected="false" data-view="compare">03 A/B 混合对比（单栏）</button>
+    <button class="tab" role="tab" aria-selected="false" data-view="evidence">04 来源与验证</button>
+  </nav>
+
+  <main>
+    <!-- ============ 00 总览 ============ -->
+    <section id="view-overview">
+      <div class="panel hero">
+        <h1>同一栏猪、同一条营养标准，<em>AI 把“喂什么”变成一个可优化的减排变量</em></h1>
+        <p class="lead">饲喂配方不是固定表格：它同时决定饲料的碳足迹、氮排泄与粪污甲烷。Feed2Climate 用 100 头育肥猪的真实生长/采食记录做聚类分层，用线性规划在营养约束下求解最优配方，并把“分层饲喂 vs 一刀切饲喂”的栏舍成本与模型化排放差异算给你看。</p>
+        <div class="claims">
+          <div class="claim"><div class="t">数据是真的</div><div class="v">100 头猪 × 76 天个体记录<small>Zenodo 6626445 · CC BY 4.0 · MD5 校验一致 · 可复现</small></div></div>
+          <div class="claim"><div class="t">AI 在哪</div><div class="v">聚类分层 + 线性规划 + Pareto 前沿<small>无监督学习划分饲喂组；单纯形法逐原料求解配方；131 项断言核对</small></div></div>
+          <div class="claim"><div class="t">排放怎么算</div><div class="v">饲料生产 + 粪污 CH₄ + 粪污 N₂O<small>IPCC 2019 公式结构 · AR6 GWP · 每个系数标注来源</small></div></div>
+          <div class="claim"><div class="t">诚实边界</div><div class="v">不做生长预测，未核算项不计零<small>比较基于相同生产假设；无解时报告冲突约束</small></div></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <h2 class="panel-title">为什么饲料配方和排放有关系</h2>
+          <span class="panel-sub">配方是决策变量（紫）；排放是模型化结果（橙）——改配方，链条右端的数字就会变</span>
+        </div>
+        <div class="chain-wrap">
+          <svg class="chain" viewBox="0 0 920 330" role="img" aria-label="从配方到排放的因果链图">
+            <defs>
+              <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--muted)"></path>
+              </marker>
+            </defs>
+            <!-- 列 1：决策 -->
+            <rect class="node decision" x="8" y="108" width="150" height="76" rx="8"></rect>
+            <text x="83" y="136" text-anchor="middle" font-weight="600">配方（原料配比）</text>
+            <text class="dim" x="83" y="155" text-anchor="middle">AI 的决策变量 · LP 求解</text>
+            <text class="dim" x="83" y="171" text-anchor="middle">7 种原料 · x ≥ 0 · 合计 = 1</text>
+
+            <!-- 列 2：每 kg 属性 -->
+            <rect class="node" x="205" y="30" width="158" height="64" rx="8"></rect>
+            <text x="284" y="55" text-anchor="middle" font-weight="600">每 kg 饲料的碳足迹</text>
+            <text class="dim" x="284" y="73" text-anchor="middle">原料排放加权 · ECOALIM 量级</text>
+            <rect class="node" x="205" y="114" width="158" height="64" rx="8"></rect>
+            <text x="284" y="139" text-anchor="middle" font-weight="600">每 kg 饲料的营养</text>
+            <text class="dim" x="284" y="157" text-anchor="middle">净能 NE · SID 赖氨酸 · CP</text>
+            <rect class="node" x="205" y="198" width="158" height="64" rx="8"></rect>
+            <text x="284" y="223" text-anchor="middle" font-weight="600">每 kg 饲料的蛋白 → N</text>
+            <text class="dim" x="284" y="241" text-anchor="middle">CP ÷ 6.25 = N 含量</text>
+
+            <!-- 列 3：摄入 -->
+            <rect class="node input" x="420" y="30" width="150" height="64" rx="8"></rect>
+            <text x="495" y="55" text-anchor="middle" font-weight="600">采食量 kg/天</text>
+            <text class="dim" x="495" y="73" text-anchor="middle">个体真实记录（输入）</text>
+            <rect class="node" x="420" y="114" width="150" height="64" rx="8"></rect>
+            <text x="495" y="139" text-anchor="middle" font-weight="600">营养摄入/天</text>
+            <text class="dim" x="495" y="157" text-anchor="middle">须 ≥ 要求曲线（约束）</text>
+            <rect class="node" x="420" y="198" width="150" height="64" rx="8"></rect>
+            <text x="495" y="223" text-anchor="middle" font-weight="600">N 排泄 g/天</text>
+            <text class="dim" x="495" y="241" text-anchor="middle">N 摄入 − N 保留</text>
+
+            <!-- 列 4：粪污 -->
+            <rect class="node" x="628" y="114" width="140" height="64" rx="8"></rect>
+            <text x="698" y="139" text-anchor="middle" font-weight="600">干物质 → VS</text>
+            <text class="dim" x="698" y="157" text-anchor="middle">挥发性固体 kg/天</text>
+            <rect class="node" x="628" y="198" width="140" height="64" rx="8"></rect>
+            <text x="698" y="223" text-anchor="middle" font-weight="600">粪污储存</text>
+            <text class="dim" x="698" y="241" text-anchor="middle">MCF · EF₃（情景）</text>
+
+            <!-- 列 5：排放 -->
+            <rect class="node emis" x="800" y="60" width="112" height="64" rx="8"></rect>
+            <text x="856" y="85" text-anchor="middle" font-weight="600">饲料生产</text>
+            <text class="dim" x="856" y="103" text-anchor="middle">kg CO₂e/头/天</text>
+            <rect class="node emis" x="800" y="150" width="112" height="64" rx="8"></rect>
+            <text x="856" y="175" text-anchor="middle" font-weight="600">粪污 CH₄</text>
+            <text class="dim" x="856" y="193" text-anchor="middle">VS×B₀×0.67×MCF</text>
+            <rect class="node emis" x="800" y="240" width="112" height="64" rx="8"></rect>
+            <text x="856" y="265" text-anchor="middle" font-weight="600">粪污 N₂O</text>
+            <text class="dim" x="856" y="283" text-anchor="middle">N 排泄×EF₃×44/28</text>
+
+            <!-- 边 -->
+            <path class="edge" d="M158 128 L 205 70"></path>
+            <path class="edge" d="M158 146 L 205 146"></path>
+            <path class="edge" d="M158 164 L 205 224"></path>
+            <path class="edge" d="M363 62 L 420 62"></path>
+            <path class="edge" d="M363 146 L 420 146"></path>
+            <path class="edge" d="M363 230 L 420 230"></path>
+            <path class="edge" d="M495 94 L 495 114"></path>
+            <path class="edge" d="M495 178 L 495 198"></path>
+            <path class="edge" d="M570 230 L 628 230"></path>
+            <path class="edge" d="M570 60 C 620 40 700 90 800 92"></path>
+            <path class="edge" d="M698 178 L 698 198"></path>
+            <path class="edge" d="M698 230 L 698 262 L 798 262"></path>
+            <path class="edge" d="M640 146 L 798 180"></path>
+            <text class="dim" x="700" y="318" text-anchor="middle">三条排放流相加 = 每头每天模型化排放 → ×头数 = 栏舍每天。配方决定前两条链的“入口浓度”。</text>
+          </svg>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <h2 class="panel-title">AI 流水线：从原始记录到栏舍决策</h2>
+          <span class="panel-sub">四步全部确定性可复现，无黑箱</span>
+        </div>
+        <div class="pipline">
+          <div class="step"><span class="no">①</span>
+            <div class="t">真实数据特征化</div>
+            <div class="d">对每头猪计算截至所选日的平均日增重、平均采食量、采食变异系数（描述统计，不做预测）。</div>
+            <span class="badge method">Zenodo 6626445</span>
+          </div>
+          <div class="step"><span class="no">②</span>
+            <div class="t">无监督聚类分层</div>
+            <div class="d">k-means++ 初始化 + Lloyd 迭代，z-score 标准化；固定种子 + 12 次重启取最优，结果逐位可复现。</div>
+            <span class="badge method">k-means</span>
+            <button class="go" data-goto="ai">看分组结果 →</button>
+          </div>
+          <div class="step"><span class="no">③</span>
+            <div class="t">配方线性规划</div>
+            <div class="d">每个饲喂组解一次原料级 LP：营养约束 + 配合上限，目标在“最低成本 ↔ 最低排放”间滑动，得到 Pareto 前沿。</div>
+            <span class="badge method">单纯形法</span>
+            <button class="go" data-goto="ai">看配方与前沿 →</button>
+          </div>
+          <div class="step"><span class="no">④</span>
+            <div class="t">情景对比核算</div>
+            <div class="d">同一生产假设下对比“分层饲喂 vs 一刀切饲喂”：栏舍每天的成本、N 排泄与模型化排放差异。</div>
+            <span class="badge method">IPCC 2019 + AR6</span>
+            <button class="go" data-goto="ai">看对比结果 →</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <h2 class="panel-title">结果速览（默认情景：截至第 42 天 · 3 组 · 种子 42）</h2>
+          <span class="panel-sub">实时计算，改参数去“02 AI 方案设计”</span>
+        </div>
+        <div class="claims" id="ov-claims"></div>
+        <div class="footnote" id="ov-note"></div>
+      </div>
+    </section>
+
+    <!-- ============ 01 当前状态与营养检查 ============ -->
+    <section id="view-history" hidden>
+      <div class="panel">
+        <div class="panel-head">
+          <h2 class="panel-title">生产状态录入</h2>
+          <span class="panel-sub">公开样例来自 Zenodo 6626445（100 头育肥猪 · CC BY 4.0）</span>
+        </div>
+        <div class="grid grid-3">
+          <label class="field">公开样例（个体记录）
+            <select id="in-animal"></select>
+          </label>
+          <label class="field">记录截至
+            <select id="in-cutoff">
+              <option value="28">入育肥舍第 28 天</option>
+              <option value="42" selected>入育肥舍第 42 天</option>
+              <option value="56">入育肥舍第 56 天</option>
+            </select>
+          </label>
+          <label class="field">最近体重（kg）
+            <input id="in-weight" type="number" min="1" step="0.1" value="99.5">
+          </label>
+          <label class="field">平均日采食量（kg/天）
+            <input id="in-feed" type="number" min="0.1" step="0.01" value="2.41">
+          </label>
+        </div>
+        <div class="grid grid-3" style="margin-top:12px;">
+          <label class="field">采食量统计时间窗（天）
+            <input id="in-window" type="number" min="1" step="1" value="7">
+            <span style="font-size:11px;">均值的覆盖天数</span>
+          </label>
+          <label class="field">栏舍头数（群体核算用）
+            <input id="in-heads" type="number" min="1" step="1" value="100">
+          </label>
+          <label class="field">当前配方 A 料比例（%）
+            <input id="in-ratio" type="number" min="0" max="100" step="1" value="50">
+          </label>
+        </div>
+        <div class="grid grid-3" style="margin-top:12px;">
+          <label class="field">粪污管理情景
+            <select id="in-manure">
+              <option value="slurry">液态储存（slurry）</option>
+              <option value="lagoon">厌氧塘（lagoon）</option>
+            </select>
+          </label>
+          <label class="field">气候区（MCF 取值）
+            <select id="in-climate">
+              <option value="temperate">温带</option>
+              <option value="cool">凉爽</option>
+            </select>
+          </label>
+          <label class="field">饲料价格日期
+            <input id="in-pricedate" type="date" value="2026-09-29">
+          </label>
+        </div>
+        <div class="actions">
+          <button class="primary" id="btn-apply">把历史均值填入状态</button>
+        </div>
+        <div class="footnote">“把历史均值填入状态”取截至所选日的近 7 日平均采食量与最近体重，由用户确认后作为情景输入（描述统计，非未来预测）。</div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <h2 class="panel-title">历史记录（仅描述截至所选日）</h2>
+          <span class="panel-sub" id="hist-sub"></span>
+        </div>
+        <div class="toggle" role="group" aria-label="记录类型">
+          <button data-metric="weight" aria-pressed="true">体重</button>
+          <button data-metric="feed" aria-pressed="false">采食量</button>
+        </div>
+        <svg id="chart" class="chart" role="img" aria-label="截至所选日期的历史记录折线图"></svg>
+        <div class="snap">
+          <div class="snap-item"><div class="k">截止日体重</div><div class="v" id="s-weight">—</div></div>
+          <div class="snap-item"><div class="k">近 7 日平均采食量</div><div class="v" id="s-feed">—</div></div>
+          <div class="snap-item"><div class="k">近 7 日记录数</div><div class="v" id="s-records">—</div></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <h2 class="panel-title">营养供需检查</h2>
+          <span class="panel-sub">要求曲线与日粮组成见“来源与验证”；满足约束不代表实际换料后生产表现不变</span>
+        </div>
+        <div id="nutrition-results"></div>
+      </div>
+
+      <div class="actions">
+        <button class="primary" id="btn-to-ai">下一步：AI 方案设计 →</button>
+      </div>
+    </section>
+
+    <!-- ============ 02 AI 方案设计 ============ -->
+    <section id="view-ai" hidden>
+      <div class="panel">
+        <div class="panel-head">
+          <h2 class="panel-title">分层与优化参数</h2>
+          <span class="panel-sub">全部修改实时重算；随机性已种子化，同参数结果逐位一致</span>
+        </div>
+        <div class="ai-controls">
+          <label class="field">记录截至（天）
+            <select id="ai-cutoff">
+              <option value="28">第 28 天</option>
+              <option value="42" selected>第 42 天</option>
+              <option value="56">第 56 天</option>
+            </select>
+          </label>
+          <label class="field">分组数 k
+            <select id="ai-k">
+              <option value="2">2 组</option>
+              <option value="3" selected>3 组</option>
+              <option value="4">4 组</option>
+              <option value="5">5 组</option>
+            </select>
+          </label>
+          <label class="field">聚类种子
+            <input id="ai-seed" type="number" min="1" step="1" value="42">
+          </label>
+          <label class="field">约束口径
+            <select id="ai-mode">
+              <option value="mean_margin">组均值 + 5% 安全边际（常规）</option>
+              <option value="strict">覆盖组内最严格个体（保守）</option>
+            </select>
+          </label>
+          <label class="field">目标：成本 ↔ 排放 权重
+            <input id="ai-w" type="range" min="0" max="100" step="5" value="50">
+            <span id="ai-w-label" style="font-size:11px;">50% 成本 / 50% 排放</span>
+          </label>
+        </div>
+        <div id="ai-status"></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <h2 class="panel-title">① 聚类：谁和谁是一类猪</h2>
+          <span class="panel-sub">横轴平均日采食量 · 纵轴平均日增重 · 颜色 = 饲喂组（k-means，z-score 标准化三维特征后投影）</span>
+        </div>
+        <div class="scatter-wrap"><svg id="ai-scatter" class="scatter" role="img" aria-label="个体聚类散点图"></svg></div>
+        <div class="legend" id="ai-legend"></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <h2 class="panel-title">② 每组的优化配方（原料级线性规划）</h2>
+          <span class="panel-sub">约束：NE ≥ 组目标 · SID 赖氨酸 ≥ 组目标 · CP ≥ 120 · 配合上限；目标随上方权重滑动</span>
+        </div>
+        <div class="grid grid-3" id="ai-groups"></div>
+        <div class="footnote" id="ai-groups-note"></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <h2 class="panel-title">③ 分层饲喂 vs 一刀切饲喂（同一栏猪）</h2>
+          <span class="panel-sub">两情景每头猪使用相同的体重、采食量与目标增重，差异只来自配方</span>
+        </div>
+        <div id="ai-scenario"></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <h2 class="panel-title">④ 成本–排放 Pareto 前沿（单栏代表个体）</h2>
+          <span class="panel-sub">每个点 = 一次 LP 最优解；左下方向更优。前沿回答“每多降一点排放要多花多少钱”</span>
+        </div>
+        <div class="pareto-wrap"><svg id="ai-pareto" class="pareto" role="img" aria-label="成本-排放 Pareto 前沿"></svg></div>
+        <div id="ai-pareto-detail"></div>
+      </div>
+    </section>
+
+    <!-- ============ 03 A/B 混合对比 ============ -->
+    <section id="view-compare" hidden>
+      <div class="panel">
+        <div class="panel-head">
+          <h2 class="panel-title">共同条件（适用于所有方案）</h2>
+          <span class="panel-sub">这些条件相同，方案差异只来自 A/B 配比</span>
+        </div>
+        <div class="snap" style="margin-top:0;">
+          <div class="snap-item"><div class="k">采食量情景</div><div class="v" id="cc-feed">—</div></div>
+          <div class="snap-item"><div class="k">增重假设（固定）</div><div class="v" id="cc-adg">—</div></div>
+          <div class="snap-item"><div class="k">粪污情景</div><div class="v" id="cc-manure">—</div></div>
+          <div class="snap-item"><div class="k">营养要求来源</div><div class="v" style="font-size:12px;" id="cc-req">—</div></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <h2 class="panel-title">方案对比</h2>
+          <span class="panel-sub" id="cmp-sub"></span>
+        </div>
+        <div class="cmp" id="cmp-table"></div>
+        <div class="footnote">比较基于每 kg 饲料价格与每头每天换算；排放项为饲料生产 + 粪污 CH₄ + 粪污 N₂O（可核算项）。</div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <h2 class="panel-title">群体换算（栏舍合计）</h2>
+          <span class="panel-sub">按录入头数线性放大每头结果</span>
+        </div>
+        <div id="herd-table"></div>
+        <div class="footnote">头数在“01 状态录入”页修改；线性换算不含群体层面的相互作用。</div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <h2 class="panel-title">粪污管理情景对比（同一候选方案）</h2>
+          <span class="panel-sub">换粪污情景不改配比；饲料项与 N₂O 项不变，CH₄ 随 MCF 变化</span>
+        </div>
+        <div id="manure-scenarios"></div>
+        <div class="footnote">用于展示同一配比在不同粪污情景下的模型化排放差异，不是更换粪污系统的建议。简化：厌氧塘 MCF 不分气候区取同一值。</div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <h2 class="panel-title">敏感性与单位检查</h2>
+          <span class="panel-sub">关键参数变动对“模型化排放差异”的影响</span>
+        </div>
+        <div id="sensitivity"></div>
+      </div>
+
+      <div class="actions">
+        <button class="ghost" id="btn-back">← 返回状态页</button>
+        <button class="primary" id="btn-to-evidence">查看每项结果的依据 →</button>
+      </div>
+    </section>
+
+    <!-- ============ 04 来源与验证 ============ -->
+    <section id="view-evidence" hidden>
+      <div class="panel">
+        <div class="panel-head">
+          <h2 class="panel-title">输入与系数来源</h2>
+          <span class="panel-sub">版本、单位、适用范围与核算边界逐项标注</span>
+        </div>
+        <table>
+          <thead><tr><th>项目</th><th>状态</th><th>来源与边界</th></tr></thead>
+          <tbody id="evidence-table"></tbody>
+        </table>
+      </div>
+      <div class="panel">
+        <div class="panel-head">
+          <h2 class="panel-title">验证清单</h2>
+          <span class="panel-sub">已完成的核对与未完成的验证</span>
+        </div>
+        <ul id="validation-list" style="margin:0;padding-left:18px;font-size:13px;line-height:1.9;">
+        </ul>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script src="records.js"></script>
+<script src="parameters/feed2climate-parameters.js"></script>
+<script src="engine.js"></script>
+<script src="ai.js"></script>
+<script>
+(() => {
+  'use strict';
+  const P = window.F2C_PARAMETERS;
+  const E = window.F2C_ENGINE;
+  const AI = window.F2C_AI;
+  const $ = (id) => document.getElementById(id);
+  const state = { view: 'overview', animal: '86', cutoff: 42, metric: 'weight', ai: { cutoff: 42, k: 3, seed: 42, mode: 'mean_margin', w: 0.5 } };
+  const CLUSTER_COLORS = ['#3d8bff', '#18a25a', '#ef7b2f', '#9a6ee8', '#00a4b8'];
+
+  /* ---------------- 页面切换 ---------------- */
+  const VIEWS = ['overview', 'history', 'ai', 'compare', 'evidence'];
+  function setView(view) {
+    state.view = view;
+    document.querySelectorAll('.tab').forEach((t) => t.setAttribute('aria-selected', String(t.dataset.view === view)));
+    VIEWS.forEach((v) => { $('view-' + v).hidden = v !== view; });
+    if (view === 'overview') renderOverview();
+    if (view === 'compare') renderCompare();
+    if (view === 'evidence') renderEvidence();
+    if (view === 'ai') renderAI();
+    window.scrollTo(0, 0);
+  }
+  document.querySelectorAll('.tab').forEach((t) => t.addEventListener('click', () => setView(t.dataset.view)));
+  document.querySelectorAll('.go[data-goto]').forEach((b) => b.addEventListener('click', () => setView(b.dataset.goto)));
+  $('btn-to-ai').addEventListener('click', () => setView('ai'));
+  $('btn-to-evidence').addEventListener('click', () => setView('evidence'));
+  $('btn-back').addEventListener('click', () => setView('history'));
+
+  /* ---------------- 00 总览 ---------------- */
+  function renderOverview() {
+    let sc = null;
+    try { sc = AI.scenarioCompare(window.F2C_RECORDS, 42, P, { k: 3, seed: 42 }); } catch (e) { sc = null; }
+    const box = $('ov-claims');
+    if (!sc || sc.status !== 'ok') {
+      box.innerHTML = '<div class="claim"><div class="v">AI 情景暂不可算<small>请检查数据文件</small></div></div>';
+      return;
+    }
+    const perHead = sc.delta.emissionsPerDay / 100;
+    const perHeadCost = sc.delta.costPerDay / 100;
+    box.innerHTML = [
+      { t: '分层 vs 一刀切 · 成本', v: (sc.delta.costPerDay > 0 ? '+' : '') + sc.delta.costPerDay + ' €/天（栏舍 100 头）', s: '每头每天约 ' + (perHeadCost > 0 ? '+' : '') + perHeadCost.toFixed(4) + ' €；口径见 02 页' },
+      { t: '分层 vs 一刀切 · 模型化排放', v: (sc.delta.emissionsPerDay > 0 ? '+' : '') + sc.delta.emissionsPerDay + ' kg CO₂e/天', s: '每头每天约 ' + (perHead > 0 ? '+' : '') + perHead.toFixed(4) + ' kg；饲料+粪污 CH₄+N₂O' },
+      { t: '一刀切配方的代价', v: '约束按全群最严格个体定浓度', s: '组内个体差异被“平均掉”，也放弃了低需求组的节料空间' },
+      { t: 'Pareto 前沿', v: '11 个 LP 最优点连成曲线', s: '量化“减排—成本”的边际替换率，见 02 页第 ④ 节' },
+    ].map((c) => `<div class="claim"><div class="t">${c.t}</div><div class="v">${c.v}<small>${c.s}</small></div></div>`).join('');
+    $('ov-note').textContent = '以上为示范参数下的模型化结果：要求曲线、原料价格与排放系数均为示范值（见“04 来源与验证”）；未核算项（间接 N₂O、农场能耗、运输等）不计零，不合成完整碳足迹。';
+  }
+
+  /* ---------------- 01 历史图 ---------------- */
+  function record() { return window.F2C_RECORDS.find((r) => r.id === state.animal) || window.F2C_RECORDS[0]; }
+
+  function drawChart() {
+    const svg = $('chart');
+    const rec = record();
+    const pts = rec.points.filter((p) => p.day <= state.cutoff);
+    const m = { l: 56, r: 16, t: 18, b: 42 };
+    const width = svg.clientWidth || 900;
+    const height = 280;
+    svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
+    svg.innerHTML = '';
+    const vals = pts.map((p) => p[state.metric]);
+    let lo = Math.min(...vals), hi = Math.max(...vals);
+    const pad = Math.max((hi - lo) * 0.15, 0.5);
+    lo = Math.max(0, lo - pad); hi += pad;
+    const x = (d) => m.l + (d - 1) / (state.cutoff - 1) * (width - m.l - m.r);
+    const y = (v) => height - m.b - (v - lo) / (hi - lo) * (height - m.t - m.b);
+    for (let i = 0; i <= 4; i++) {
+      const v = lo + (hi - lo) * i / 4;
+      svg.innerHTML += `<line class="gridline" x1="${m.l}" x2="${width - m.r}" y1="${y(v)}" y2="${y(v)}"/>`;
+      svg.innerHTML += `<text x="${m.l - 8}" y="${y(v) + 4}" text-anchor="end">${v.toFixed(state.metric === 'weight' ? 0 : 1)}</text>`;
+    }
+    [1, 14, 28, 42, 56].filter((d) => d <= state.cutoff).forEach((d) => {
+      svg.innerHTML += `<text x="${x(d)}" y="${height - m.b + 16}" text-anchor="middle">${d}</text>`;
+    });
+    svg.innerHTML += `<text x="${(m.l + width - m.r) / 2}" y="${height - 6}" text-anchor="middle">进入育肥舍后的天数</text>`;
+    svg.innerHTML += `<path class="series" d="${pts.map((p) => (p === pts[0] ? 'M' : 'L') + x(p.day).toFixed(1) + ' ' + y(p[state.metric]).toFixed(1)).join(' ')}"/>`;
+    const last = pts[pts.length - 1];
+    svg.innerHTML += `<circle cx="${x(last.day)}" cy="${y(last[state.metric])}" r="4" fill="var(--blue)"/>`;
+    svg.innerHTML += `<text x="${x(last.day) - 8}" y="${y(last[state.metric]) - 8}" text-anchor="end">${last[state.metric].toFixed(state.metric === 'weight' ? 1 : 2)}</text>`;
+
+    const recent = pts.filter((p) => p.day > state.cutoff - 7);
+    const meanFeed = recent.reduce((a, p) => a + p.feed, 0) / recent.length;
+    $('s-weight').innerHTML = last.weight.toFixed(1) + ' <small>kg</small>';
+    $('s-feed').innerHTML = meanFeed.toFixed(2) + ' <small>kg/天</small>';
+    $('s-records').innerHTML = recent.length + ' <small>/ 7 天</small>';
+    $('hist-sub').textContent = `猪只 ${rec.id} · ${rec.pen} · 第 1–${state.cutoff} 天公开记录（描述统计）`;
+  }
+
+  /* ---------------- 01 营养检查 ---------------- */
+  function readInput() {
+    return {
+      weightKg: Number($('in-weight').value),
+      feedIntakeKgDay: Number($('in-feed').value),
+      feedWindowDays: Number($('in-window').value),
+      headCount: Number($('in-heads').value),
+      currentRatioA: Number($('in-ratio').value) / 100,
+      manureSystem: $('in-manure').value,
+      climate: $('in-climate').value,
+      priceDate: $('in-pricedate').value,
+    };
+  }
+
+  function renderNutrition() {
+    const input = readInput();
+    const result = E.run(input, P);
+    const box = $('nutrition-results');
+    if (result.status === 'incomplete') {
+      box.innerHTML = '<div class="notice">缺输入：' + result.completeness.missing.map((m) => m.field + '（' + m.reason + '）').join('；') + '</div>';
+      return;
+    }
+    const c = result.current;
+    const rows = [
+      { key: 'ne', label: '净能 NE' },
+      { key: 'sidLys', label: 'SID 赖氨酸' },
+      { key: 'cp', label: '粗蛋白 CP（饲料含量）' },
+    ];
+    box.innerHTML = '<table><thead><tr><th>项目</th><th class="num">供应量</th><th class="num">要求</th><th class="num">差额</th><th>判定</th></tr></thead><tbody>'
+      + rows.map((row) => {
+        const d = c.check[row.key];
+        return `<tr><td>${row.label}</td><td class="num">${d.supply}</td><td class="num">${d.requirement}</td><td class="num">${d.margin > 0 ? '+' : ''}${d.margin}</td><td class="${d.pass ? 'pass' : 'fail'}">${d.pass ? '满足' : '不足'}</td></tr>`;
+      }).join('')
+      + `</tbody></table>
+      <div class="footnote">单位：${c.check.ne.unit}；${c.check.sidLys.unit}；${c.check.cp.unit}。供应 = 混合日粮含量 × 录入采食量；要求 = 示范要求曲线（显式参数，见来源页）。<br>公式：NE ${c.check.ne.formula}；SID 赖氨酸 ${c.check.sidLys.formula}；CP ${c.check.cp.formula}。</div>
+      ${result.currentAllPass ? '<div class="notice info">当前配方满足全部已定义约束。</div>' : '<div class="notice bad">当前配方存在不满足的约束：候选方案将在满足全部约束的配比中产生。</div>'}`;
+  }
+
+  /* ---------------- 02 AI 方案设计 ---------------- */
+  function renderAI() {
+    const a = state.ai;
+    a.cutoff = Number($('ai-cutoff').value);
+    a.k = Number($('ai-k').value);
+    a.seed = Number($('ai-seed').value) || 42;
+    a.mode = $('ai-mode').value;
+    a.w = Number($('ai-w').value) / 100;
+    $('ai-w-label').textContent = Math.round((1 - a.w) * 100) + '% 成本 / ' + Math.round(a.w * 100) + '% 排放';
+
+    const sc = AI.scenarioCompare(window.F2C_RECORDS, a.cutoff, P, { k: a.k, seed: a.seed, requirementMode: a.mode, co2eWeight: a.w });
+    const st = $('ai-status');
+    if (sc.status !== 'ok') {
+      const c = sc.ceilings || {};
+      st.innerHTML = `<div class="notice bad"><strong>当前口径下无可行配方。</strong>要求浓度超过可达上限（NE ≤ ${c.maxNE} MJ/kg，SID 赖氨酸 ≤ ${c.maxLys} g/kg——受“配比合计 = 1”与配合上限约束）。请改用“组均值 + 5% 安全边际”口径，或接受这是要求参数与采食记录冲突的诚实信号。</div>`;
+    } else {
+      st.innerHTML = '';
+    }
+    drawScatter(sc);
+    renderGroups(sc);
+    renderScenario(sc);
+    renderPareto(a);
+  }
+
+  function drawScatter(sc) {
+    const svg = $('ai-scatter');
+    const m = { l: 58, r: 18, t: 18, b: 46 };
+    const width = svg.clientWidth || 680;
+    const height = 360;
+    svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
+    const pigs = sc.pigs;
+    const xs = pigs.map((p) => p.avgFI), ys = pigs.map((p) => p.adg);
+    let x0 = Math.min(...xs) - 0.1, x1 = Math.max(...xs) + 0.1;
+    let y0 = Math.min(...ys) - 0.05, y1 = Math.max(...ys) + 0.05;
+    const X = (v) => m.l + (v - x0) / (x1 - x0) * (width - m.l - m.r);
+    const Y = (v) => height - m.b - (v - y0) / (y1 - y0) * (height - m.t - m.b);
+    let html = '';
+    for (let i = 0; i <= 4; i++) {
+      const vx = x0 + (x1 - x0) * i / 4;
+      const vy = y0 + (y1 - y0) * i / 4;
+      html += `<line class="gridline" x1="${m.l}" x2="${width - m.r}" y1="${Y(vy)}" y2="${Y(vy)}"/>`;
+      html += `<text x="${m.l - 8}" y="${Y(vy) + 4}" text-anchor="end">${vy.toFixed(2)}</text>`;
+      html += `<text x="${X(vx)}" y="${height - m.b + 16}" text-anchor="middle">${vx.toFixed(1)}</text>`;
+    }
+    html += `<text x="${(m.l + width - m.r) / 2}" y="${height - 6}" text-anchor="middle">平均日采食量（kg/天，截至第 ${sc.cutoff} 天）</text>`;
+    html += `<text x="14" y="${height / 2}" transform="rotate(-90 14 ${height / 2})" text-anchor="middle">平均日增重（kg/天）</text>`;
+    for (const p of pigs) {
+      html += `<circle cx="${X(p.avgFI).toFixed(1)}" cy="${Y(p.adg).toFixed(1)}" r="4.2" fill="${CLUSTER_COLORS[p.cluster % CLUSTER_COLORS.length]}" fill-opacity="0.75"/>`;
+    }
+    for (const g of sc.groups) {
+      const cx = g.meanFI, cy = g.meanADG;
+      html += `<circle cx="${X(cx).toFixed(1)}" cy="${Y(cy).toFixed(1)}" r="9" fill="none" stroke="${CLUSTER_COLORS[g.cluster % CLUSTER_COLORS.length]}" stroke-width="2"/>`;
+      html += `<text x="${(X(cx) + 12).toFixed(1)}" y="${(Y(cy) - 10).toFixed(1)}" font-weight="600" fill="${CLUSTER_COLORS[g.cluster % CLUSTER_COLORS.length]}">${g.name}（${g.n} 头）</text>`;
+    }
+    svg.innerHTML = html;
+    $('ai-legend').innerHTML = sc.groups.map((g) =>
+      `<span><span class="dot" style="background:${CLUSTER_COLORS[g.cluster % CLUSTER_COLORS.length]}"></span>${g.name}：${g.n} 头 · 均重 ${g.meanBW} kg · 均ADG ${g.meanADG} kg/天</span>`
+    ).join('');
+  }
+
+  function recipeBars(recipe, keys) {
+    const entries = keys.map((k) => [k, recipe[k] || 0]).filter((e) => e[1] > 0.0005).sort((a, b) => b[1] - a[1]);
+    const max = entries.length ? entries[0][1] : 1;
+    return entries.slice(0, 6).map(([k, v]) => {
+      const name = (P.ingredients[k] && P.ingredients[k].name) || k;
+      return `<div class="bar-row"><span class="nm">${name}</span><span class="bar" style="width:${Math.max(2, v / max * 120).toFixed(0)}px"></span><span class="pc">${(v * 100).toFixed(1)}%</span></div>`;
+    }).join('') + (entries.length > 6 ? `<div class="bar-row"><span class="nm">其余 ${entries.length - 6} 项</span><span class="pc">…</span></div>` : '');
+  }
+
+  function groupCard(g, color) {
+    if (g.lp.status !== 'optimal') {
+      return `<div class="gcard"><h3><span class="dot" style="background:${color}"></span>${g.name} · ${g.n} 头</h3>
+        <div class="notice bad" style="margin:6px 0 0;">该组约束无可行配方（要求超出可达上限）。</div></div>`;
+    }
+    const lp = g.lp;
+    return `<div class="gcard">
+      <h3><span class="dot" style="background:${color}"></span>${g.name} · ${g.n} 头</h3>
+      <div class="stats">
+        <div><div class="k">均重</div>${g.meanBW} kg</div>
+        <div><div class="k">目标 ADG（均值夹值）</div>${g.meanADG} kg/天</div>
+        <div><div class="k">均采食</div>${g.meanFI} kg/天</div>
+        <div><div class="k">均料重比</div>${g.meanFCR == null ? '—' : g.meanFCR}</div>
+        <div><div class="k">NE 约束/采食</div>${lp.targets.neReqPerKg} MJ/kg</div>
+        <div><div class="k">Lys 约束/采食</div>${lp.targets.lysReqPerKg} g/kg</div>
+      </div>
+      ${recipeBars(lp.recipe, lp.keys)}
+      <div class="kv">
+        <span><span class="k">NE </span>${lp.perKg.ne} MJ/kg</span>
+        <span><span class="k">Lys </span>${lp.perKg.sidLys} g/kg</span>
+        <span><span class="k">CP </span>${lp.perKg.cp} g/kg</span>
+        <span><span class="k">价格 </span>${lp.perKg.price} €/t</span>
+        <span><span class="k">排放 </span>${lp.perKg.feedCo2e} kg CO₂e/kg</span>
+        <span><span class="k">个体满足率 </span><strong>${(g.satisfaction * 100).toFixed(0)}%</strong></span>
+      </div>
+    </div>`;
+  }
+
+  function renderGroups(sc) {
+    const box = $('ai-groups');
+    const anyGroupOk = sc.groups.some((g) => g.lp.status === 'optimal');
+    if (!anyGroupOk && sc.uniform.lp.status !== 'optimal') { box.innerHTML = ''; $('ai-groups-note').textContent = '无可行配方，见上方提示。'; return; }
+    box.innerHTML = sc.groups.map((g) => groupCard(g, CLUSTER_COLORS[g.cluster % CLUSTER_COLORS.length])).join('');
+    const u = sc.uniform;
+    const uCard = u.lp.status === 'optimal' && sc.status === 'ok' ? `<div class="gcard" style="border-style:dashed;">
+      <h3><span class="dot" style="background:var(--muted)"></span>一刀切 · 全群 100 头</h3>
+      <div class="stats">
+        <div><div class="k">约束 NE/采食</div>${u.nePerFI} MJ/kg</div>
+        <div><div class="k">约束 Lys/采食</div>${u.lysPerFI} g/kg</div>
+        <div><div class="k">口径</div>${sc.requirementMode === 'strict' ? '最严格个体' : '均值+' + Math.round(sc.margin * 100) + '%'}</div>
+      </div>
+      ${recipeBars(u.lp.recipe, u.lp.keys)}
+      <div class="kv">
+        <span><span class="k">NE </span>${u.lp.perKg.ne} MJ/kg</span>
+        <span><span class="k">Lys </span>${u.lp.perKg.sidLys} g/kg</span>
+        <span><span class="k">CP </span>${u.lp.perKg.cp} g/kg</span>
+        <span><span class="k">价格 </span>${u.lp.perKg.price} €/t</span>
+        <span><span class="k">排放 </span>${u.lp.perKg.feedCo2e} kg CO₂e/kg</span>
+        <span><span class="k">个体满足率 </span><strong>${(u.satisfaction * 100).toFixed(0)}%</strong></span>
+      </div>
+    </div>` : '';
+    $('ai-groups-note').innerHTML = '右侧灰色卡片为“一刀切”对照配方（全群同一种料）。' + sc.method.capNote
+      + (sc.requirementMode === 'strict' ? ' 保守口径下组目标更严、更接近可达上限。' : '');
+    box.insertAdjacentHTML('beforeend', uCard);
+  }
+
+  function renderScenario(sc) {
+    const box = $('ai-scenario');
+    if (sc.status !== 'ok') { box.innerHTML = '<div class="notice">当前口径无可行配方，无对比结果。</div>'; return; }
+    const g = sc.totals.grouped, u = sc.totals.uniform, d = sc.delta;
+    const fmtCls = (v) => v === 0 ? 'delta-zero' : (v < 0 ? 'delta-down' : 'delta-up');
+    const satG = sc.groups.reduce((s, x) => s + x.n * x.satisfaction, 0) / 100;
+    box.innerHTML = `
+      <div class="vs-head"><div>项目（栏舍 100 头 · 每天合计）</div><div>分层饲喂（${sc.k} 组）</div><div>一刀切饲喂</div><div>差异（分层−一刀切）</div></div>
+      <div class="vs-row"><div>饲料成本（€/天）</div><div>${g.costPerDay.toFixed(2)}</div><div>${u.costPerDay.toFixed(2)}</div><div class="${fmtCls(d.costPerDay)}">${(d.costPerDay > 0 ? '+' : '') + d.costPerDay}</div></div>
+      <div class="vs-row"><div>N 排泄（kg/天）</div><div>${g.nExcretedKgDay.toFixed(2)}</div><div>${u.nExcretedKgDay.toFixed(2)}</div><div class="${fmtCls(d.nExcretedKgDay)}">${(d.nExcretedKgDay > 0 ? '+' : '') + d.nExcretedKgDay}</div></div>
+      <div class="vs-row"><div>模型化排放（kg CO₂e/天）</div><div>${g.emissionsPerDay.toFixed(2)}</div><div>${u.emissionsPerDay.toFixed(2)}</div><div class="${fmtCls(d.emissionsPerDay)}">${(d.emissionsPerDay > 0 ? '+' : '') + d.emissionsPerDay}</div></div>
+      <div class="vs-row vs-delta"><div>每头每天排放（kg CO₂e）</div><div>${(g.emissionsPerDay / 100).toFixed(4)}</div><div>${(u.emissionsPerDay / 100).toFixed(4)}</div><div class="${fmtCls(d.emissionsPerDay)}">${(d.emissionsPerDay / 100 > 0 ? '+' : '') + (d.emissionsPerDay / 100).toFixed(4)}</div></div>
+      <div class="footnote">${sc.method.compareBasis}。${sc.method.emissionNote}。${sc.method.mode}；${sc.method.satisfactionDef}：分层加权 ${(satG * 100).toFixed(0)}% vs 一刀切 ${(sc.uniform.satisfaction * 100).toFixed(0)}%。
+      边界：${sc.method.requirement}；${sc.method.capNote}</div>`;
+  }
+
+  function renderPareto(a) {
+    const pf = AI.paretoFront(P, { bw: 99.5, adg: 0.9, fi: 2.41, steps: 11, co2eWeight: a.w });
+    const svg = $('ai-pareto');
+    const m = { l: 62, r: 20, t: 18, b: 46 };
+    const width = svg.clientWidth || 620;
+    const height = 320;
+    svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
+    const box = $('ai-pareto-detail');
+    if (!pf.feasible) { svg.innerHTML = ''; box.innerHTML = '<div class="notice bad">Pareto 前沿不可算：该要求下无可行配方。</div>'; return; }
+    const pts = pf.front;
+    const xs = pts.map((p) => p.costPerKg), ys = pts.map((p) => p.co2ePerKg);
+    const x0 = Math.min(...xs) - 0.004, x1 = Math.max(...xs) + 0.004;
+    const y0 = Math.min(...ys) - 0.008, y1 = Math.max(...ys) + 0.008;
+    const X = (v) => m.l + (v - x0) / (x1 - x0) * (width - m.l - m.r);
+    const Y = (v) => height - m.b - (v - y0) / (y1 - y0) * (height - m.t - m.b);
+    let html = '';
+    for (let i = 0; i <= 4; i++) {
+      const vx = x0 + (x1 - x0) * i / 4, vy = y0 + (y1 - y0) * i / 4;
+      html += `<line class="gridline" x1="${m.l}" x2="${width - m.r}" y1="${Y(vy)}" y2="${Y(vy)}"/>`;
+      html += `<text x="${m.l - 8}" y="${Y(vy) + 4}" text-anchor="end">${vy.toFixed(3)}</text>`;
+      html += `<text x="${X(vx)}" y="${height - m.b + 16}" text-anchor="middle">${vx.toFixed(3)}</text>`;
+    }
+    html += `<text x="${(m.l + width - m.r) / 2}" y="${height - 6}" text-anchor="middle">饲料成本（€/kg）</text>`;
+    html += `<text x="14" y="${height / 2}" transform="rotate(-90 14 ${height / 2})" text-anchor="middle">饲料碳足迹（kg CO₂e/kg）</text>`;
+    html += `<path d="${pts.map((p, i) => (i === 0 ? 'M' : 'L') + X(p.costPerKg).toFixed(1) + ' ' + Y(p.co2ePerKg).toFixed(1)).join(' ')}" fill="none" stroke="var(--violet)" stroke-width="2"/>`;
+    for (const p of pts) {
+      const isSel = Math.abs(p.w - a.w) < 0.051;
+      html += `<circle cx="${X(p.costPerKg).toFixed(1)}" cy="${Y(p.co2ePerKg).toFixed(1)}" r="${isSel ? 6 : 4}" fill="${isSel ? 'var(--violet)' : 'var(--blue)'}" fill-opacity="${isSel ? 1 : 0.6}"/>`;
+    }
+    html += `<text x="${X(pts[0].costPerKg)}" y="${Y(pts[0].co2ePerKg) - 12}" text-anchor="middle">纯成本最优</text>`;
+    html += `<text x="${X(pts[pts.length - 1].costPerKg)}" y="${Y(pts[pts.length - 1].co2ePerKg) - 12}" text-anchor="middle">纯排放最优</text>`;
+    svg.innerHTML = html;
+
+    // 高亮点细节
+    const sel = pts.reduce((best, p) => (Math.abs(p.w - a.w) < Math.abs(best.w - a.w) ? p : best), pts[0]);
+    box.innerHTML = `<div class="kv" style="margin-top:10px;">
+        <span><span class="k">选中权重 </span>${Math.round((1 - sel.w) * 100)}% 成本 / ${Math.round(sel.w * 100)}% 排放</span>
+        <span><span class="k">成本 </span>${sel.costPerKg.toFixed(4)} €/kg</span>
+        <span><span class="k">碳足迹 </span>${sel.co2ePerKg} kg CO₂e/kg</span>
+      </div>
+      <div style="max-width:420px;margin-top:8px;">${recipeBars(sel.recipe, Object.keys(sel.recipe))}</div>
+      <div class="footnote">前沿由 11 次加权 LP 求解 + 非支配过滤得到；相邻点的斜率即“每降 1 kg CO₂e 需增加的成本”。代表个体：BW 99.5 kg、ADG 0.9、采食 2.41 kg/天。</div>`;
+  }
+
+  /* ---------------- 02 AI 控件事件 ---------------- */
+  ['ai-cutoff', 'ai-k', 'ai-seed', 'ai-mode'].forEach((id) => $(id).addEventListener('change', renderAI));
+  $('ai-w').addEventListener('input', () => { renderAI(); });
+
+  /* ---------------- 01 输入读取与事件 ---------------- */
+  window.F2C_RECORDS.forEach((rec) => {
+    const opt = document.createElement('option');
+    opt.value = rec.id;
+    opt.textContent = `猪只 ${rec.id} · ${rec.pen}`;
+    $('in-animal').appendChild(opt);
+  });
+  $('in-animal').addEventListener('change', () => {
+    state.animal = $('in-animal').value;
+    const pts = record().points.filter((p) => p.day <= state.cutoff);
+    const last = pts[pts.length - 1];
+    const recent = pts.filter((p) => p.day > state.cutoff - 7);
+    $('in-weight').value = last.weight.toFixed(1);
+    $('in-feed').value = (recent.reduce((a, p) => a + p.feed, 0) / recent.length).toFixed(2);
+    renderAll();
+  });
+  $('in-cutoff').addEventListener('change', () => {
+    state.cutoff = Number($('in-cutoff').value);
+    $('in-animal').dispatchEvent(new Event('change'));
+  });
+  $('btn-apply').addEventListener('click', () => { $('in-animal').dispatchEvent(new Event('change')); });
+  ['in-weight', 'in-feed', 'in-window', 'in-heads', 'in-ratio', 'in-manure', 'in-climate', 'in-pricedate'].forEach((id) => {
+    $(id).addEventListener('input', renderAll);
+  });
+  document.querySelectorAll('[data-metric]').forEach((b) => b.addEventListener('click', () => {
+    state.metric = b.dataset.metric;
+    document.querySelectorAll('[data-metric]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    drawChart();
+  }));
+
+  function renderAll() { drawChart(); renderNutrition(); if (state.view === 'compare') renderCompare(); }
+
+  /* ---------------- 03 A/B 混合对比 ---------------- */
+  function renderCompare() {
+    const input = readInput();
+    const result = E.run(input, P);
+    const box = $('cmp-table');
+    $('cc-feed').innerHTML = input.feedIntakeKgDay + ' <small>kg/天</small>';
+    $('cc-adg').innerHTML = P.mechanism.adg_kg_day + ' <small>kg/天</small>';
+    $('cc-manure').textContent = (input.manureSystem === 'lagoon' ? '厌氧塘' : '液态储存') + ' · ' + (input.climate === 'temperate' ? '温带' : '凉爽');
+    $('cc-req').textContent = '示范要求曲线（参数显式录入）';
+
+    if (result.status === 'incomplete') {
+      box.innerHTML = '<div class="notice" style="grid-column:1/-1;">缺输入：' + result.completeness.missing.map((m) => m.field).join('；') + '</div>';
+      $('sensitivity').innerHTML = ''; $('cmp-sub').textContent = '';
+      $('herd-table').innerHTML = ''; $('manure-scenarios').innerHTML = '';
+      return;
+    }
+
+    if (result.status === 'infeasible') {
+      const pr = result.conflict.probes.map((p) =>
+        `<tr><td class="mono">${(p.ratioA * 100).toFixed(0)}%</td><td>${p.nePass ? '✓' : '✗'} NE</td><td>${p.lysPass ? '✓' : '✗'} 赖氨酸</td><td>${p.cpPass ? '✓' : '✗'} CP</td></tr>`).join('');
+      box.innerHTML = `<div class="notice bad" style="grid-column:1/-1;"><strong>无可行方案。</strong> ${result.conflict.message}</div>
+        <div style="grid-column:1/-1;"><table><thead><tr><th>试探配比</th><th>NE</th><th>赖氨酸</th><th>CP</th></tr></thead><tbody>${pr}</tbody></table></div>
+        <div class="footnote" style="grid-column:1/-1;">${result.conflict.advice}</div>`;
+      $('sensitivity').innerHTML = '';
+      $('cmp-sub').textContent = '';
+      $('herd-table').innerHTML = ''; $('manure-scenarios').innerHTML = '';
+      return;
+    }
+
+    const cur = result.current;
+    const cands = result.candidates;
+    $('cmp-sub').textContent = `在 ${result.search.feasibleCount}/${result.search.attempted} 个网格配比中找到可行解 · 价格日期 ${input.priceDate}`;
+
+    function r(x, d) { const p = Math.pow(10, d); return Math.round(x * p) / p; }
+
+    let html = `<div>比较项目</div><div>当前方案（A ${Math.round(cur.ratioA * 100)}%）</div>`;
+    cands.forEach((c) => { html += `<div>候选（A ${Math.round(c.ratioA * 100)}%）</div>`; });
+    if (cands.length === 1) html += '<div class="col-extra">—</div>';
+    const fmt = (x, d) => Number(x).toFixed(d == null ? 2 : d);
+
+    const rows = [
+      ['A/B 配比', (c) => `${Math.round(c.ratioA * 100)}% / ${Math.round((1 - c.ratioA) * 100)}%`],
+      ['营养约束', (c) => c.check.ne.pass && c.check.sidLys.pass && c.check.cp.pass ? '<span class="pass">全部满足</span>' : '<span class="fail">存在不足</span>'],
+      ['饲料价格（欧元/吨）', (c) => fmt(c.diet.price, 2)],
+      ['饲料成本（欧元/头/天）', (c) => fmt(c.costPerHeadDay, 3)],
+      ['N 摄入（g/天）', (c) => fmt(c.nIntake, 1)],
+      ['N 排泄（g/天）', (c) => fmt(c.nExcreted, 1)],
+      ['粪污 CH₄（kg CO₂e/头/天）', (c) => fmt(c.emissions.manureCh4, 3)],
+      ['粪污 N₂O（kg CO₂e/头/天）', (c) => fmt(c.emissions.manureN2o, 3)],
+      ['饲料生产（kg CO₂e/头/天）', (c) => fmt(c.emissions.feed, 3)],
+      ['可核算合计（kg CO₂e/头/天）', (c) => fmt(c.emissions.total, 3)],
+    ];
+    rows.forEach(([label, get]) => {
+      html += `<div>${label}</div><div class="num">${get(cur)}</div>`;
+      cands.forEach((c) => html += `<div class="num">${get(c)}</div>`);
+      if (cands.length === 1) html += '<div class="col-extra">—</div>';
+    });
+
+    const cmpNum = (get, d) => r(get(cands[0]) - get(cur), d);
+    html += `<div>候选−当前：成本</div><div></div><div class="num ${cmpNum((c) => c.costPerHeadDay, 3) < 0 ? 'delta-down' : 'delta-up'}">${(cmpNum((c) => c.costPerHeadDay, 3) > 0 ? '+' : '') + cmpNum((c) => c.costPerHeadDay, 3)}</div>${cands.length === 1 ? '<div class="col-extra">—</div>' : ''}`;
+    html += `<div>候选−当前：排放合计</div><div></div><div class="num ${cmpNum((c) => c.emissions.total, 3) < 0 ? 'delta-down' : 'delta-up'}">${(cmpNum((c) => c.emissions.total, 3) > 0 ? '+' : '') + cmpNum((c) => c.emissions.total, 3)}</div>${cands.length === 1 ? '<div class="col-extra">—</div>' : ''}`;
+    box.innerHTML = html;
+
+    renderSensitivity(input, cur, cands[0]);
+    renderManureScenarios(input, cands[0]);
+    renderHerd(input, cur, cands[0]);
+  }
+
+  function renderSensitivity(input, cur, cand) {
+    const box = $('sensitivity');
+    const fmt = (x, d) => Number(x).toFixed(d == null ? 2 : d);
+    const variants = [];
+    for (const factor of [0.8, 1.2]) {
+      const p2 = JSON.parse(JSON.stringify(P));
+      p2.manure.mcf_slurry_temperate *= factor;
+      p2.manure.mcf_slurry_cool *= factor;
+      p2.manure.mcf_anaerobic_lagoon *= factor;
+      const resCur = E.evaluate(input, cur.ratioA, p2);
+      const resCand = E.evaluate(input, cand.ratioA, p2);
+      variants.push({
+        label: (factor < 1 ? '−20%' : '+20%') + ' MCF',
+        totalCur: resCur.emissions.total, totalCand: resCand.emissions.total,
+      });
+    }
+    for (const factor of [0.8, 1.2]) {
+      const p2 = JSON.parse(JSON.stringify(P));
+      Object.keys(p2.ingredients).forEach((k) => {
+        if (p2.ingredients[k] && typeof p2.ingredients[k] === 'object') p2.ingredients[k].price *= factor;
+      });
+      const resCur = E.evaluate(input, cur.ratioA, p2);
+      const resCand = E.evaluate(input, cand.ratioA, p2);
+      variants.push({
+        label: (factor < 1 ? '−20%' : '+20%') + ' 原料价格',
+        costCur: resCur.costPerHeadDay, costCand: resCand.costPerHeadDay,
+      });
+    }
+    box.innerHTML = '<table><thead><tr><th>参数变动</th><th class="num">当前方案排放合计</th><th class="num">候选方案排放合计</th><th class="num">差异（候选−当前）</th></tr></thead><tbody>'
+      + variants.map((v) => {
+        if (v.totalCur != null) {
+          const d = v.totalCand - v.totalCur;
+          return `<tr><td>${v.label}</td><td class="num">${fmt(v.totalCur, 3)}</td><td class="num">${fmt(v.totalCand, 3)}</td><td class="num ${d < 0 ? 'delta-down' : 'delta-up'}">${d > 0 ? '+' : ''}${fmt(d, 3)}</td></tr>`;
+        }
+        const d = v.costCand - v.costCur;
+        return `<tr><td>${v.label}（成本）</td><td class="num">${fmt(v.costCur, 3)}</td><td class="num">${fmt(v.costCand, 3)}</td><td class="num ${d < 0 ? 'delta-down' : 'delta-up'}">${d > 0 ? '+' : ''}${fmt(d, 3)}</td></tr>`;
+      }).join('') + '</tbody></table>'
+      + '<div class="footnote">MCF 变动影响粪污 CH₄ 项；原料价格同比例变动影响成本差异（差异符号不变，绝对值变化）。</div>';
+  }
+
+  function renderManureScenarios(input, cand) {
+    const scenarios = [
+      { sys: 'slurry', cli: 'temperate', label: '液态储存 · 温带' },
+      { sys: 'slurry', cli: 'cool', label: '液态储存 · 凉爽' },
+      { sys: 'lagoon', cli: 'temperate', label: '厌氧塘 · 温带' },
+      { sys: 'lagoon', cli: 'cool', label: '厌氧塘 · 凉爽' },
+    ];
+    const fmt = (x, d) => Number(x).toFixed(d == null ? 3 : d);
+    $('manure-scenarios').innerHTML = '<table><thead><tr><th>粪污情景</th><th class="num">MCF</th><th class="num">粪污 CH₄（kg CO₂e/头/天）</th><th class="num">粪污 N₂O</th><th class="num">饲料生产</th><th class="num">可核算合计</th></tr></thead><tbody>'
+      + scenarios.map((s) => {
+        const em = E.manureAndEmissions(cand.diet, input.weightKg, cand.feedKgDayUsed, cand.adg, P, s.sys, s.cli);
+        const isCur = s.sys === input.manureSystem && s.cli === input.climate;
+        return `<tr><td>${s.label}${isCur ? ' <span class="badge ok">当前</span>' : ''}</td><td class="num">${fmt(em.mcfUsed, 2)}</td><td class="num">${fmt(em.emissions.manureCh4)}</td><td class="num">${fmt(em.emissions.manureN2o)}</td><td class="num">${fmt(em.emissions.feed)}</td><td class="num">${fmt(em.emissions.total)}</td></tr>`;
+      }).join('') + '</tbody></table>';
+  }
+
+  function renderHerd(input, cur, cand) {
+    const fmt = (x, d) => Number(x).toFixed(d == null ? 2 : d);
+    const hC = E.herdTotals(cur, input.headCount);
+    const hK = E.herdTotals(cand, input.headCount);
+    const delta = (a, b) => Math.round((b - a) * 100) / 100;
+    const dCost = delta(hC.costPerDay, hK.costPerDay);
+    const dEm = delta(hC.emissions.total, hK.emissions.total);
+    const dN = delta(hC.nExcretedKgDay, hK.nExcretedKgDay);
+    const cell = (d) => `<span class="${d === 0 ? 'delta-zero' : (d < 0 ? 'delta-down' : 'delta-up')}">${(d > 0 ? '+' : '') + d}</span>`;
+    $('herd-table').innerHTML = '<table><thead><tr><th>项目（栏舍合计）</th><th class="num">当前方案</th><th class="num">候选方案</th><th class="num">差异（候选−当前）</th></tr></thead><tbody>'
+      + `<tr><td>头数</td><td class="num">${hC.headCount}</td><td class="num">${hK.headCount}</td><td class="num">—</td></tr>`
+      + `<tr><td>耗料量（t/天）</td><td class="num">${fmt(hC.feedTonnesDay, 3)}</td><td class="num">${fmt(hK.feedTonnesDay, 3)}</td><td class="num">—</td></tr>`
+      + `<tr><td>饲料成本（€/天）</td><td class="num">${fmt(hC.costPerDay)}</td><td class="num">${fmt(hK.costPerDay)}</td><td class="num">${cell(dCost)}</td></tr>`
+      + `<tr><td>N 排泄（kg/天）</td><td class="num">${fmt(hC.nExcretedKgDay)}</td><td class="num">${fmt(hK.nExcretedKgDay)}</td><td class="num">${cell(dN)}</td></tr>`
+      + `<tr><td>排放合计（kg CO₂e/天）</td><td class="num">${fmt(hC.emissions.total)}</td><td class="num">${fmt(hK.emissions.total)}</td><td class="num">${cell(dEm)}</td></tr>`
+      + '</tbody></table>';
+  }
+
+  /* ---------------- 04 来源与验证 ---------------- */
+  function renderEvidence() {
+    const input = readInput();
+    $('evidence-table').innerHTML = [
+      ['生长与采食记录', '已接入', 'Zenodo 6626445（Lenoir 等，2022），CC BY 4.0，MD5 18af2d0b87fe0d020c5190019cff921b。100 头猪 × 前 76 天；层级：个体。不含日粮营养或实测排放字段。'],
+      ['AI 分层方法', '已接入', 'k-means（k-means++ 初始化 + Lloyd 迭代），特征 = 平均日增重 / 平均采食量 / 采食变异系数（描述统计），z-score 标准化；固定种子 + 12 次重启，结果逐位可复现。聚类只描述历史，不做未来预测。'],
+      ['配方优化（LP）', '已接入', '两阶段单纯形法（Bland 规则，防循环），决策变量 = 7 种原料配比；约束 = 配比合计、NE、SID 赖氨酸、CP 下限、配合上限（豆油 ≤5%、赖氨酸 ≤1%、预混料 ≤0.5%）；目标 = 成本与排放加权。最优性经 4000 随机可行点与手工算例对照验证。'],
+      ['成本–排放 Pareto 前沿', '已接入', '对权重 0→1 扫描 11 次 LP，非支配过滤后连线；展示减排—成本边际替换率。'],
+      ['情景比较口径', '显式录入', '分层配方按“组均值 + 5% 安全边际”（可选“覆盖最严格个体”保守口径）；两情景每头猪使用相同体重/采食/目标增重，差异只来自配方；个体满足率 = 配方浓度 ≥ 该头严格“要求/采食”比的占比。'],
+      ['能量维持公式', '已接入', P.energy.source + '。适用：随数据集发布的作者换算，正式使用应换用明确版本营养标准。'],
+      ['A/B 日粮组成与价格', '示范输入', P.diets.source + '。计量基准：原样（as-fed）；价格日期：' + input.priceDate + '（用户录入）。须营养师确认后才能用于实际决策。'],
+      ['原料表（配方 LP 用）', '示范输入', '营养量级参照 INRA-CIRAD-AFZ；排放量级参照 ECOALIM v7（Wilfart 等 2016，doi:10.1371/journal.pone.0167343）；价格量级参照 de Quelen 等 2021 报道的 IFIP 价。正式使用须逐项换用正式数据库。'],
+      ['营养要求曲线', '示范输入', P.requirements.source + '。' + P.requirements.notes],
+      ['饲料生产排放系数', '示范输入', '原料级系数按配方质量占比线性加权；口径：原料生产至配合饲料出厂，不含农场能耗；统一 GWP：IPCC AR6（CH₄=27，N₂O=273）。ECOALIM 正式系数待逐项接入。'],
+      ['粪污 CH₄', '已接入（示范参数）', 'IPCC 2019 Refinement Vol.4 Ch.10 Tier 2 结构：EF = VS × B₀ × 0.67 × MCF。示范 B₀、MCF 见参数文件；系统边界：农场内储存。'],
+      ['粪污 N₂O（直接）', '已接入（示范参数）', 'IPCC 2019 Tier 1 结构：N₂O = N 排泄 × EF₃ × 44/28。EF₃ 为示范值；未含间接 N₂O（标记为未核算）。'],
+      ['未核算项', '标记，不计零', '间接 N₂O、农场能耗、运输、兽药与动物本身、肠道发酵等未纳入；不合成完整碳足迹。'],
+      ['共同条件', '固定', P.meta.common_basis],
+    ].map((row) => `<tr><td>${row[0]}</td><td><span class="badge ${row[1].includes('已接入') ? 'ok' : (row[1].includes('未核算') ? 'bad' : 'warn')}">${row[1]}</span></td><td>${row[2]}</td></tr>`).join('');
+
+    $('validation-list').innerHTML = [
+      '数据导入：100 头猪、每头前 76 天、无重复日期、无缺失字段（tools/prepare-records.js 自动检查）。',
+      '引擎核对：node tools/verify-calc.js，73 项手工复算断言全部通过（配方加权、营养要求、氮平衡、IPCC 公式、可行搜索、群体换算、无解提示、确定性）。',
+      'AI 层核对：node tools/verify-ai.js，58 项断言全部通过（LP 求解器基础算例、最优性对照 4000 随机可行点、聚类确定性、情景自洽与 k=1 归零、Pareto 单调性、保守口径无解时如实报告可达上限）。',
+      '确定性：相同输入产生相同输出（含聚类随机性——种子化后逐位一致）。',
+      '无解提示：要求超出可达上限或采食量过低时，如实显示冲突约束与探针，不输出“最优配方”。',
+      '未完成：营养参数与排放系数待营养师/正式数据库确认；实际换料后的生产表现与减排效果需现场验证；聚类分组需结合栏位结构与转群计划才可落地。',
+    ].map((x) => `<li>${x}</li>`).join('');
+  }
+
+  /* ---------------- 初始化 ---------------- */
+  $('in-animal').dispatchEvent(new Event('change'));
+  setView('overview');
+  window.addEventListener('resize', () => {
+    if (state.view === 'history') drawChart();
+    if (state.view === 'ai') renderAI();
+  });
+})();
+</script>
+</body>
+</html>

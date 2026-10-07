@@ -1,0 +1,3 @@
+# Preserve downloaded research sources byte for byte, including original line endings.
+demo_sources/zenodo_6626445/DataAxiom.CSV -text
+demo_sources/zenodo_6626445/DLM_script.R -text

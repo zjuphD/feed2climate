@@ -1,0 +1,19 @@
+# macOS filesystem metadata
+.DS_Store
+._*
+
+# Local tool state
+.freebuff/
+
+# Credentials and local settings
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Dependency caches
+node_modules/
+.venv/
+__pycache__/
+*.pyc
