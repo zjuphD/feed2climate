@@ -17,3 +17,6 @@ node_modules/
 .venv/
 __pycache__/
 *.pyc
+
+# Generated publish fragment (tools/build-story.js)
+dist/*.fragment.html

@@ -1,0 +1,766 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Feed2Climate</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;900&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* 布局：单栏长文，每节“结论 → 图 → 一行依据”，图表通栏；数据色：三阶段=橙、每周=蓝、AI=青绿；状态色只用于“喂得够不够” */
+:root {
+  --bg: #f4f6f3;
+  --surface: #fcfcfb;
+  --ink: #15201a;
+  --ink-2: #4a5550;
+  --muted: #7b847e;
+  --line: #dfe3dc;
+  --axis: #c3c8c0;
+  --phase: #eb6834;
+  --week: #2a78d6;
+  --ai: #1baf7a;
+  --waste: rgba(235, 104, 52, 0.15);
+  --waste-2: #f4b08e;
+  --good: #0ca30c;
+  --critical: #d03b3b;
+  --focus: #2a78d6;
+  --f-sans: "Noto Sans SC", system-ui, -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f1311; --surface: #161b18; --ink: #edf1ed; --ink-2: #b7c0ba; --muted: #848e87;
+    --line: #26302a; --axis: #3a443e; --phase: #d95926; --week: #3987e5; --ai: #199e70;
+    --waste: rgba(217, 89, 38, 0.22); --waste-2: #9a5435; --focus: #3987e5; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f1311; --surface: #161b18; --ink: #edf1ed; --ink-2: #b7c0ba; --muted: #848e87;
+  --line: #26302a; --axis: #3a443e; --phase: #d95926; --week: #3987e5; --ai: #199e70;
+  --waste: rgba(217, 89, 38, 0.22); --waste-2: #9a5435; --focus: #3987e5; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--f-sans); font-size: 16px; line-height: 1.65; -webkit-font-smoothing: antialiased; }
+.wrap { max-width: 1120px; margin: 0 auto; padding-inline: 20px; }
+a { color: inherit; text-underline-offset: 3px; }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: 3px; }
+.mono { font-family: var(--f-mono); }
+
+header.top { border-bottom: 1px solid var(--line); }
+header.top .wrap { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-block: 14px; flex-wrap: wrap; }
+.brand { font-weight: 900; letter-spacing: 0.01em; font-size: 18px; }
+.brand span { color: var(--ai); }
+nav.toc { display: flex; gap: 18px; flex-wrap: wrap; font-size: 14px; color: var(--ink-2); }
+nav.toc a { text-decoration: none; }
+nav.toc a:hover { color: var(--ink); text-decoration: underline; }
+
+section { padding-block: 56px; border-bottom: 1px solid var(--line); }
+section:last-of-type { border-bottom: 0; }
+.eyebrow { font-size: 13px; letter-spacing: 0.08em; color: var(--muted); margin: 0 0 10px; }
+h1 { font-size: clamp(30px, 5vw, 52px); line-height: 1.18; font-weight: 900; margin: 0 0 16px; text-wrap: balance; letter-spacing: -0.01em; }
+h2 { font-size: clamp(24px, 3.4vw, 34px); line-height: 1.25; font-weight: 900; margin: 0 0 12px; text-wrap: balance; }
+.lede { font-size: 18px; color: var(--ink-2); max-width: 46em; margin: 0 0 24px; }
+.lede strong { color: var(--ink); font-weight: 700; }
+.note { font-size: 13.5px; color: var(--muted); max-width: 60em; margin: 12px 0 0; }
+
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; padding: 3px; background: var(--surface); gap: 2px; flex-wrap: wrap; }
+.seg button { font: inherit; font-size: 14px; border: 0; background: transparent; color: var(--ink-2); padding: 6px 14px; border-radius: 999px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
+.seg button .key { width: 14px; height: 3px; border-radius: 2px; display: inline-block; }
+.controls { display: flex; gap: 12px 20px; align-items: center; flex-wrap: wrap; margin-bottom: 14px; }
+
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 18px 18px 12px; }
+.legend { display: flex; gap: 8px 18px; flex-wrap: wrap; font-size: 13px; color: var(--ink-2); margin: 0 0 8px; }
+.legend i { display: inline-block; vertical-align: middle; margin-right: 6px; }
+.legend .ln { width: 18px; height: 2px; border-radius: 2px; }
+.legend .ln.thin { height: 1px; opacity: .5; }
+.legend .ar { width: 14px; height: 10px; border-radius: 2px; }
+.legend .dot { width: 10px; height: 10px; border-radius: 50%; }
+svg { display: block; width: 100%; height: auto; overflow: visible; }
+svg text { font-family: var(--f-sans); }
+.ax line, .ax path { stroke: var(--axis); stroke-width: 1; }
+.grid line { stroke: var(--line); stroke-width: 1; }
+.tick { fill: var(--muted); font-size: 12px; font-family: var(--f-mono); }
+.axlab { fill: var(--muted); font-size: 12px; }
+.dlab { fill: var(--ink-2); font-size: 13px; }
+.dlab.strong { fill: var(--ink); font-weight: 700; }
+
+.tags { display: flex; flex-wrap: wrap; gap: 6px; margin: 12px 0 2px; }
+.tag { font-size: 12.5px; border: 1px solid var(--line); border-radius: 6px; padding: 3px 8px; color: var(--ink-2); background: var(--bg); white-space: nowrap; }
+.tag b { font-family: var(--f-mono); font-weight: 500; color: var(--ink); }
+.tag .k { color: var(--muted); }
+
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-top: 18px; }
+.tile { border-top: 2px solid var(--ink); padding-top: 8px; min-width: 0; }
+.tile .lab { font-size: 13px; color: var(--muted); }
+.tile .val { font-size: 28px; font-weight: 700; line-height: 1.25; }
+.tile .sub { font-size: 12.5px; color: var(--ink-2); }
+
+.grids { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 22px; }
+.grid10 { min-width: 0; }
+.grid10 h3 { font-size: 16px; margin: 0 0 2px; }
+.grid10 .need { font-size: 12.5px; color: var(--muted); margin: 0 0 10px; }
+.pigs { display: grid; grid-template-columns: repeat(10, 1fr); gap: 5px; max-width: 280px; }
+.pig { aspect-ratio: 1; border-radius: 50%; border: 0; padding: 0; cursor: pointer; }
+.pig:hover, .pig:focus-visible { outline: 2px solid var(--ink); outline-offset: 1px; }
+.counts { list-style: none; padding: 0; margin: 12px 0 0; font-size: 13.5px; display: grid; gap: 2px; }
+.counts li { display: flex; align-items: center; gap: 8px; }
+.counts li b { font-family: var(--f-mono); font-weight: 500; min-width: 2.2em; text-align: right; }
+.counts i { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+.c-good { background: var(--good); } .c-warning { background: var(--waste-2); } .c-serious { background: var(--phase); } .c-critical { background: var(--critical); }
+
+.callout { font-size: 17px; max-width: 46em; margin: 22px 0 0; padding-left: 14px; border-left: 3px solid var(--ai); }
+
+.replay { display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: 22px; align-items: start; }
+@media (max-width: 860px) { .replay { grid-template-columns: 1fr; } }
+.side { font-size: 14.5px; min-width: 0; }
+.side .big { font-size: 22px; font-weight: 700; line-height: 1.3; margin-top: 6px; }
+.side dl { display: grid; grid-template-columns: auto auto; gap: 4px 12px; margin: 10px 0 0; }
+.side dt { color: var(--muted); }
+.side dd { margin: 0; font-family: var(--f-mono); text-align: right; }
+.slider { display: flex; align-items: center; gap: 12px; margin: 12px 0 0; flex-wrap: wrap; }
+.slider input { flex: 1 1 220px; accent-color: var(--ai); }
+.slider button { font: inherit; font-size: 14px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 6px; padding: 5px 12px; cursor: pointer; }
+
+.calc { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 26px; align-items: start; }
+@media (max-width: 860px) { .calc { grid-template-columns: 1fr; } }
+.field { display: grid; gap: 6px; margin-bottom: 16px; }
+.field label, .field legend { font-size: 13.5px; color: var(--ink-2); }
+.field input:not([type="radio"]), .field select { font: inherit; font-size: 15px; padding: 8px 10px; border: 1px solid var(--axis); border-radius: 6px; background: var(--surface); color: var(--ink); width: 100%; }
+fieldset.field { border: 0; padding: 0; margin: 0 0 16px; }
+.radio { display: flex; flex-direction: column; gap: 4px; font-size: 14px; }
+.radio label { display: flex; gap: 8px; align-items: baseline; color: var(--ink); }
+
+table.data { border-collapse: collapse; width: 100%; font-size: 14px; }
+table.data th, table.data td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+table.data th { font-weight: 500; color: var(--muted); font-size: 13px; }
+table.data td.num { font-family: var(--f-mono); text-align: right; white-space: nowrap; }
+.tablewrap { overflow-x: auto; }
+.pass { color: var(--good); font-weight: 700; }
+.fail { color: var(--critical); font-weight: 700; }
+details { margin-top: 12px; font-size: 14px; }
+details summary { cursor: pointer; color: var(--ink-2); }
+.cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 28px; }
+.cols > div { min-width: 0; }
+ul.plain { padding-left: 1.2em; margin: 8px 0 0; }
+ul.plain li { margin-bottom: 6px; }
+footer { padding-block: 28px 40px; font-size: 13px; color: var(--muted); }
+
+#tip { position: absolute; z-index: 10; pointer-events: none; background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font-size: 13px; box-shadow: 0 6px 20px rgba(0,0,0,.12); max-width: 260px; }
+#tip .v { font-weight: 700; font-family: var(--f-mono); }
+#tip .row { display: flex; align-items: center; gap: 8px; white-space: nowrap; }
+#tip .row i { width: 12px; height: 2px; display: inline-block; border-radius: 2px; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="wrap">
+    <div class="brand">Feed<span>2</span>Climate</div>
+    <nav class="toc" aria-label="页内导航">
+      <a href="#waste">浪费在哪</a><a href="#pigs">100 头猪</a><a href="#ladder">能兑现多少</a><a href="#replay">回放</a><a href="#scale">规模</a><a href="#evidence">依据</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+<section id="waste">
+  <div class="wrap">
+    <p class="eyebrow">育肥猪精准饲喂 · 回放 2020 年 13 批、100 头猪的真实记录</p>
+    <h1>猪的需要每天都在降，<br>喂的料却是三级台阶</h1>
+    <p class="lede">按三阶段饲喂，喂进去的赖氨酸约有 <strong id="h-share">六分之一</strong> 超出了猪的需要。多出来的蛋白变成粪里的氮，也意味着多用了进口豆粕。下面是其中一批 <span id="h-n">12</span> 头猪的进栏后 69 天。</p>
+
+    <div class="controls">
+      <div class="seg" role="group" aria-label="喂法">
+        <button type="button" data-mode="phase" aria-pressed="true"><i class="key" style="background:var(--phase)"></i>三阶段（现行）</button>
+        <button type="button" data-mode="week" aria-pressed="false"><i class="key" style="background:var(--week)"></i>每周按曲线调</button>
+        <button type="button" data-mode="ai" aria-pressed="false"><i class="key" style="background:var(--ai)"></i>逐头 AI</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="legend" id="hero-legend"></div>
+      <svg id="hero" viewBox="0 0 960 400" role="img" aria-labelledby="hero-desc"><desc id="hero-desc">进栏后第 1 到 69 天，每 kg 饲料应含的 SID 赖氨酸与实际喂给的浓度。</desc></svg>
+      <div class="tags" id="hero-tags" aria-label="料号"></div>
+      <details><summary>查看这张图的数据</summary><div class="tablewrap" id="hero-table"></div></details>
+    </div>
+    <div class="tiles" id="hero-tiles"></div>
+    <p class="note" id="hero-note"></p>
+  </div>
+</section>
+
+<section id="pigs">
+  <div class="wrap">
+    <p class="eyebrow">同一栏，100 头猪</p>
+    <h2>同一栏的猪，需要并不一样</h2>
+    <p class="lede">一栏只喂一种料，浓度只能照顾吃得多、长得快的猪，于是一部分猪长期吃撑。个体饲喂站能让每头猪吃自己的料，前提是知道每头猪今天需要多少。每个点是一头猪，颜色是它进栏后 69 天平均多喂或少喂了多少。</p>
+    <div class="legend" id="pig-legend"></div>
+    <div class="grids" id="pig-grids"></div>
+    <p class="callout" id="pig-callout"></p>
+    <p class="note">三种喂法的“营养不足的猪日”都控制在 10%，只比较多喂了多少；“刚好”指平均供给在需要的 97%–110% 之间。</p>
+  </div>
+</section>
+
+<section id="ladder">
+  <div class="wrap">
+    <p class="eyebrow">潜力与兑现</p>
+    <h2>潜力很大，能兑现多少卡在预测上</h2>
+    <p class="lede" id="ladder-lede"></p>
+    <div class="controls">
+      <div class="seg" role="group" aria-label="指标" id="metric-seg"></div>
+    </div>
+    <div class="card">
+      <svg id="bars" viewBox="0 0 960 420" role="img" aria-labelledby="bars-desc"><desc id="bars-desc">各种喂法相对三阶段的变化。</desc></svg>
+      <details><summary>查看数据表</summary><div class="tablewrap" id="bars-table"></div></details>
+    </div>
+    <p class="note">13 批逐批留出、30 组观测噪声，营养不足的猪日对齐到 10% 后比较。能量浓度各做法相同，只比较蛋白（赖氨酸）上的决定；配方为国内玉米–豆粕加合成氨基酸。</p>
+  </div>
+</section>
+
+<section id="replay">
+  <div class="wrap">
+    <p class="eyebrow">回放</p>
+    <h2>AI 只看当天以前的数据</h2>
+    <p class="lede">企业手里只有进栏体重、每三周一次抽称和每周耗料。AI 先从其余 12 批学到一般规律，再用这批猪自己的数据不断修正。拖动滑块，看每一周定料时 AI 看到了什么、预测了什么。</p>
+    <div class="replay">
+      <div class="card">
+        <div class="legend" id="rep-legend"></div>
+        <svg id="rep" viewBox="0 0 720 380" role="img" aria-labelledby="rep-desc"><desc id="rep-desc">一批猪的平均体重：实际值、抽称值与 AI 在决策当天的预测。</desc></svg>
+        <div class="slider">
+          <button type="button" id="rep-play" aria-label="自动播放">播放</button>
+          <label for="rep-week" class="axlab" style="font-size:13px">决策周</label>
+          <input type="range" id="rep-week" min="0" max="9" step="1" value="4">
+        </div>
+      </div>
+      <div class="side" id="rep-side" aria-live="polite"></div>
+    </div>
+  </div>
+</section>
+
+<section id="scale">
+  <div class="wrap">
+    <p class="eyebrow">规模换算</p>
+    <h2>放大到一个养殖集团</h2>
+    <p class="lede">按回放得到的每头每天的变化，乘以出栏头数。只算数据覆盖的进栏后 69 天（约 32→100 kg）；整个育肥期更长，实际数字会更大。</p>
+    <div class="calc">
+      <form id="calc" onsubmit="return false">
+        <div class="field"><label for="c-heads">年出栏（头）</label><input id="c-heads" type="number" min="1000" step="10000" value="1000000" inputmode="numeric"></div>
+        <div class="field"><label for="c-method">喂法</label>
+          <select id="c-method">
+            <option value="P1">每周按曲线调（不加硬件）</option>
+            <option value="I3" selected>逐头 AI（个体饲喂站）</option>
+            <option value="I4">逐头理论上限</option>
+          </select>
+        </div>
+        <fieldset class="field"><legend>进口豆粕的碳排放</legend>
+          <div class="radio" id="c-scn">
+            <label><input type="radio" name="scn" value="low"> 不涉毁林（0.54 kg CO₂e/kg）</label>
+            <label><input type="radio" name="scn" value="mid" checked> 平均（1.14）</label>
+            <label><input type="radio" name="scn" value="high"> 涉毁林（1.69）</label>
+          </div>
+        </fieldset>
+      </form>
+      <div>
+        <div class="tiles" id="calc-tiles" style="margin-top:0"></div>
+        <p class="note" id="calc-note"></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="evidence">
+  <div class="wrap">
+    <p class="eyebrow">依据与局限</p>
+    <h2>每个数字都能追溯</h2>
+    <div class="cols">
+      <div>
+        <h3>事先定好的及格线</h3>
+        <p class="note" style="margin-top:0">营养不足不增加的前提下：(2) 氮减幅达到同一层级理论上限的一半；(3) 比最好的简单方法至少多降 3 个百分点。结果如实列出。</p>
+        <div class="tablewrap" id="verdicts"></div>
+        <h3 style="margin-top:22px">预测误差</h3>
+        <div class="tablewrap" id="errors"></div>
+      </div>
+      <div>
+        <h3>怎么验证的</h3>
+        <ul class="plain">
+          <li>把逐头逐日的研究数据降级成企业版：进栏称重、每 3 周抽称（加 3% 误差）、每周耗料（加 4% 误差），饲料提前 3 天定。</li>
+          <li>13 批逐批留出：用其余 12 批学规律，只用当时看得到的数据排料，再用完整数据逐头逐日打分；重复 30 组观测噪声。</li>
+          <li>配方：玉米–豆粕加合成氨基酸，按理想蛋白比例约束苏、蛋+胱、色、缬、异亮，最低原料成本。</li>
+          <li>排放：饲料碳排放 + 粪污甲烷 + 直接与间接氧化亚氮（IPCC 2019；液态储存无自然结壳、温暖湿润地区）。</li>
+        </ul>
+        <h3 style="margin-top:22px">来源</h3>
+        <ul class="plain">
+          <li>猪的记录：<a href="https://zenodo.org/records/6626445">Zenodo 6626445</a>（Lenoir 等 2022，CC BY 4.0），法国 AXIOM 测定站皮特兰公猪</li>
+          <li>原料成分与碳排放：<a href="https://www.feedtables.com/">INRA-CIRAD-AFZ 饲料表</a>（Climate change ILCD，数据来自 ECOALIM）</li>
+          <li>理想蛋白比例：<a href="https://doi.org/10.1186/s40104-015-0016-1">van Milgen &amp; Dourmad 2015</a></li>
+          <li>粪污排放系数：<a href="https://www.ipcc-nggip.iges.or.jp/public/2019rf/vol4.html">IPCC 2019 Refinement 第 4 卷</a>（表 10.16A、10.17、10.21、10.22、11.3）</li>
+          <li>价格：玉米、豆粕为农业农村部 2026 年 8 月全国集贸市场均价；合成氨基酸为 2026-02-27 国内主流报价</li>
+        </ul>
+        <h3 style="margin-top:22px">局限</h3>
+        <ul class="plain">
+          <li>13 批来自同一测定站、同一品系的公猪，批间差异比商品猪场小；这是方法演示，不是现场效果。</li>
+          <li>“理论上限”用整段数据事后平滑得到；没有模拟少喂蛋白后生长会不会变慢，营养不足只按猪日计数。</li>
+          <li>需要量模型和理想比例取文献值，未按国内品种校准；玉米与合成氨基酸的碳排放取欧洲数据。</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer><div class="wrap">Feed2Climate · 回放数据由 <span class="mono">tools/replay-eval.js</span> 生成（<span id="f-reps">30</span> 组重复），页面数据由 <span class="mono">tools/export-story.js</span> 导出。</div></footer>
+<div id="tip" hidden></div>
+
+<script src="story-data.js"></script>
+<script>
+'use strict';
+(function () {
+  const S = window.F2C_STORY;
+  const NS = 'http://www.w3.org/2000/svg';
+  const L = S.lastDay;
+  const $ = (id) => document.getElementById(id);
+  const pct = (x, d) => (x * 100).toFixed(d == null ? 1 : d) + '%';
+  const signed = (x, d) => (x > 0 ? '+' : x < 0 ? '−' : '') + Math.abs(x * 100).toFixed(d == null ? 1 : d) + '%';
+  const num = (x, d) => x.toLocaleString('zh-CN', { maximumFractionDigits: d == null ? 0 : d, minimumFractionDigits: d == null ? 0 : d });
+  function el(tag, attrs, parent) {
+    const e = document.createElementNS(NS, tag);
+    for (const k in attrs) {
+      const v = attrs[k];
+      // 颜色用 CSS 变量时写进 style（SVG 属性里的 var() 并非所有浏览器都支持）
+      if ((k === 'fill' || k === 'stroke') && typeof v === 'string' && v.indexOf('var(') >= 0) e.style[k] = v;
+      else e.setAttribute(k, v);
+    }
+    if (parent) parent.appendChild(e);
+    return e;
+  }
+  function txt(parent, x, y, s, cls, anchor) {
+    const t = el('text', { x, y, class: cls || 'dlab', 'text-anchor': anchor || 'start' }, parent);
+    t.textContent = s;
+    return t;
+  }
+  function clear(svg) { [...svg.querySelectorAll(':scope > :not(desc)')].forEach((n) => n.remove()); }
+  const lin = (d0, d1, r0, r1) => (v) => r0 + (v - d0) / (d1 - d0) * (r1 - r0);
+  function niceTicks(lo, hi, n) {
+    const step0 = (hi - lo) / n, mag = Math.pow(10, Math.floor(Math.log10(step0)));
+    const step = [1, 2, 2.5, 5, 10].map((m) => m * mag).find((s) => s >= step0);
+    const out = [];
+    for (let v = Math.ceil(lo / step) * step; v <= hi + 1e-9; v += step) out.push(+v.toFixed(6));
+    return out;
+  }
+
+  // ---------- 提示框（悬停与键盘焦点） ----------
+  const tip = $('tip');
+  function showTip(evt, build) {
+    tip.replaceChildren();
+    build(tip);
+    tip.hidden = false;
+    const r = tip.getBoundingClientRect();
+    let x, y;
+    if (evt && evt.clientX != null && evt.type !== 'focus') { x = evt.pageX + 14; y = evt.pageY + 14; }
+    else { const b = evt.target.getBoundingClientRect(); x = b.right + window.scrollX + 8; y = b.top + window.scrollY; }
+    if (x + r.width > window.scrollX + document.documentElement.clientWidth - 8) x = Math.max(8, x - r.width - 28);
+    tip.style.left = x + 'px'; tip.style.top = y + 'px';
+  }
+  function hideTip() { tip.hidden = true; }
+  function tipLine(parent, color, value, label) {
+    const row = document.createElement('div'); row.className = 'row';
+    if (color) { const i = document.createElement('i'); i.style.background = color; row.appendChild(i); }
+    const v = document.createElement('span'); v.className = 'v'; v.textContent = value; row.appendChild(v);
+    const l = document.createElement('span'); l.textContent = label; row.appendChild(l);
+    parent.appendChild(row);
+  }
+  function tipHead(parent, s) { const h = document.createElement('div'); h.style.color = 'var(--muted)'; h.style.marginBottom = '4px'; h.textContent = s; parent.appendChild(h); }
+  const css = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+
+  // ---------- 数据 ----------
+  const heroPigs = S.pigs.filter((p) => p.batch === S.hero.batch);
+  const aiMean = Array.from({ length: L }, (_, t) => heroPigs.reduce((s, p) => s + p.i3[t], 0) / heroPigs.length);
+  const LD = S.ladder;
+  const base = S.base.mid;
+  $('h-n').textContent = heroPigs.length;
+  $('f-reps').textContent = S.reps;
+  const share = LD.P0.excessLys / (1 + LD.P0.excessLys);
+  $('h-share').textContent = Math.abs(share - 1 / 6) < 0.02 ? '六分之一' : pct(share, 0);
+
+  /* ================= 1. 台阶 vs 曲线 ================= */
+  const MODES = {
+    phase: { name: '三阶段料', color: '--phase', supply: S.hero.p0, id: 'P0' },
+    week: { name: '每周按曲线调', color: '--week', supply: S.hero.p1, id: 'P1' },
+    ai: { name: '逐头 AI（这批猪平均）', color: '--ai', supply: aiMean, id: 'I3' },
+  };
+  let mode = 'phase';
+  const hero = $('hero');
+  const W = 960, H = 400, M = { l: 52, r: 150, t: 14, b: 40 };
+  const allY = heroPigs.flatMap((p) => p.need.slice(2)).concat(S.hero.p0, S.hero.p1);
+  const sorted = allY.slice().sort((a, b) => a - b);
+  const yLo = Math.floor(sorted[Math.floor(sorted.length * 0.01)] - 0.5), yHi = Math.ceil(sorted[Math.floor(sorted.length * 0.995)] + 0.5);
+  const X = lin(1, L, M.l, W - M.r), Y = lin(yLo, yHi, H - M.b, M.t);
+  const clampY = (v) => Math.max(yLo, Math.min(yHi, v));
+  const pathOf = (arr, step) => {
+    let d = '';
+    arr.forEach((v, i) => {
+      const x = X(i + 1), y = Y(clampY(v));
+      if (i === 0) d += 'M' + x + ',' + y;
+      else if (step) d += 'H' + x + 'V' + y;
+      else d += 'L' + x + ',' + y;
+    });
+    return d;
+  };
+  function legendHero() {
+    const lg = $('hero-legend'); lg.replaceChildren();
+    const item = (cls, color, label) => { const s = document.createElement('span'); const i = document.createElement('i'); i.className = cls; i.style.background = color; s.append(i, label); lg.appendChild(s); };
+    item('ln', 'var(--ink)', '这批猪的平均需要');
+    item('ln thin', 'var(--ink)', '每头猪的需要');
+    item('ln', 'var(--' + MODES[mode].color.slice(2) + ')', mode === 'ai' ? '逐头 AI 喂的料（细线为每头）' : MODES[mode].name);
+    item('ar', 'var(--waste)', '多喂的部分（相对平均需要）');
+  }
+  function drawHero() {
+    clear(hero);
+    const gGrid = el('g', { class: 'grid' }, hero), gAx = el('g', { class: 'ax' }, hero);
+    for (const v of niceTicks(yLo, yHi, 5)) { el('line', { x1: M.l, x2: W - M.r, y1: Y(v), y2: Y(v) }, gGrid); txt(hero, M.l - 8, Y(v) + 4, v.toString(), 'tick', 'end'); }
+    for (const d of [1, 10, 20, 30, 40, 50, 60, 69]) txt(hero, X(d), H - M.b + 18, String(d), 'tick', 'middle');
+    el('line', { x1: M.l, x2: W - M.r, y1: H - M.b, y2: H - M.b }, gAx);
+    txt(hero, M.l, H - 6, '进栏后天数', 'axlab');
+    txt(hero, M.l - 44, M.t - 2, 'g SID 赖氨酸 / kg 饲料', 'axlab');
+    const m = MODES[mode], color = css(m.color);
+    // 多喂部分：料线与平均需要之间（料 > 需要处）
+    let dArea = '';
+    const top = [], bot = [], step = mode !== 'ai';
+    for (let t = 1; t <= L; t++) {
+      const s = m.supply[t - 1], n = S.hero.meanNeed[t - 1];
+      if (step && t > 1 && s !== m.supply[t - 2]) top.push([X(t), Y(clampY(Math.max(m.supply[t - 2], n)))]);
+      top.push([X(t), Y(clampY(Math.max(s, n)))]);
+      bot.push([X(t), Y(clampY(n))]);
+    }
+    dArea = 'M' + top.map((p) => p.join(',')).join('L') + 'L' + bot.reverse().map((p) => p.join(',')).join('L') + 'Z';
+    el('path', { d: dArea, fill: 'var(--waste)', stroke: 'none' }, hero);
+    // 每头猪的需要
+    const gPig = el('g', {}, hero);
+    heroPigs.forEach((p) => el('path', { d: pathOf(p.need), fill: 'none', stroke: 'var(--ink)', 'stroke-opacity': 0.16, 'stroke-width': 1 }, gPig));
+    if (mode === 'ai') heroPigs.forEach((p) => el('path', { d: pathOf(p.i3), fill: 'none', stroke: color, 'stroke-opacity': 0.35, 'stroke-width': 1 }, gPig));
+    // 平均需要与料线
+    el('path', { d: pathOf(S.hero.meanNeed), fill: 'none', stroke: 'var(--ink)', 'stroke-width': 2, 'stroke-linejoin': 'round', 'stroke-linecap': 'round' }, hero);
+    el('path', { d: pathOf(m.supply, mode !== 'ai'), fill: 'none', stroke: color, 'stroke-width': 2.5, 'stroke-linejoin': 'round', 'stroke-linecap': 'round' }, hero);
+    // 线尾标签
+    const ly1 = Y(clampY(m.supply[L - 1])), ly2 = Y(clampY(S.hero.meanNeed[L - 1]));
+    const sep = Math.abs(ly1 - ly2) < 18 ? (ly1 < ly2 ? -9 : 9) : 0;
+    txt(hero, W - M.r + 8, ly1 + 4 + sep, mode === 'ai' ? '逐头 AI' : m.name, 'dlab strong');
+    txt(hero, W - M.r + 8, ly2 + 4 - sep, '平均需要', 'dlab');
+    // 悬停：十字线找最近的一天
+    const cross = el('line', { y1: M.t, y2: H - M.b, stroke: 'var(--axis)', 'stroke-width': 1, visibility: 'hidden' }, hero);
+    const hit = el('rect', { x: M.l, y: M.t, width: W - M.l - M.r, height: H - M.t - M.b, fill: 'transparent', tabindex: 0, 'aria-label': '逐日数值' }, hero);
+    const onMove = (e) => {
+      const pt = hero.createSVGPoint(); pt.x = e.clientX; pt.y = e.clientY;
+      const p = pt.matrixTransform(hero.getScreenCTM().inverse());
+      const t = Math.max(1, Math.min(L, Math.round(1 + (p.x - M.l) / (W - M.l - M.r) * (L - 1))));
+      cross.setAttribute('x1', X(t)); cross.setAttribute('x2', X(t)); cross.setAttribute('visibility', 'visible');
+      const s = m.supply[t - 1], n = S.hero.meanNeed[t - 1];
+      showTip(e, (box) => {
+        tipHead(box, '进栏后第 ' + t + ' 天');
+        tipLine(box, color, s.toFixed(1), mode === 'ai' ? '逐头 AI（平均）' : m.name);
+        tipLine(box, css('--ink'), n.toFixed(1), '平均需要');
+        tipLine(box, null, signed(s / n - 1, 0), '相对平均需要');
+      });
+    };
+    hit.addEventListener('pointermove', onMove);
+    hit.addEventListener('pointerleave', () => { cross.setAttribute('visibility', 'hidden'); hideTip(); });
+    legendHero();
+    drawTags(); drawHeroTiles(); drawHeroTable();
+  }
+  function drawTags() {
+    const box = $('hero-tags'); box.replaceChildren();
+    const m = MODES[mode];
+    const add = (a, b, v, label) => {
+      const s = document.createElement('span'); s.className = 'tag';
+      const k = document.createElement('span'); k.className = 'k'; k.textContent = label + ' 第 ' + a + (a === b ? '' : '–' + b) + ' 天 · ';
+      const bb = document.createElement('b'); bb.textContent = v.toFixed(1);
+      s.append(k, bb, ' g/kg'); box.appendChild(s);
+    };
+    if (mode === 'ai') {
+      const s = document.createElement('span'); s.className = 'tag';
+      s.textContent = '两种基础料按每头猪每天现配：' + heroPigs.length + ' 头 × ' + L + ' 天 = ' + (heroPigs.length * L) + ' 个配比';
+      box.appendChild(s); return;
+    }
+    let start = 1, k = 1;
+    for (let t = 2; t <= L + 1; t++) {
+      if (t === L + 1 || Math.abs(m.supply[t - 1] - m.supply[start - 1]) > 1e-6) { add(start, t - 1, m.supply[start - 1], (mode === 'phase' ? k + ' 号料' : '第 ' + k + ' 周')); start = t; k++; }
+    }
+  }
+  function tile(parent, label, value, sub) {
+    const d = document.createElement('div'); d.className = 'tile';
+    const a = document.createElement('div'); a.className = 'lab'; a.textContent = label;
+    const b = document.createElement('div'); b.className = 'val'; b.textContent = value;
+    d.append(a, b);
+    if (sub) { const c = document.createElement('div'); c.className = 'sub'; c.textContent = sub; d.appendChild(c); }
+    parent.appendChild(d);
+  }
+  function drawHeroTiles() {
+    const box = $('hero-tiles'); box.replaceChildren();
+    const r = LD[MODES[mode].id];
+    tile(box, '多喂的赖氨酸', pct(r.excessLys, 0), '相对猪的实际需要');
+    if (mode === 'phase') {
+      tile(box, '豆粕', num(base.sbmKg * 1000) + ' g', '每头每天');
+      tile(box, '氮排泄', num(base.nEx, 1) + ' g', '每头每天');
+      tile(box, '碳排放', num(base.co2e, 2) + ' kg', '每头每天 CO₂e');
+      tile(box, '原料成本', num(base.cost, 2) + ' 元', '每头每天');
+    } else {
+      tile(box, '豆粕', signed(r.sbm), '相对三阶段');
+      tile(box, '氮排泄', signed(r.nEx), '相对三阶段');
+      tile(box, '碳排放', signed(r.co2e), '相对三阶段');
+      tile(box, '原料成本', signed(r.cost), '相对三阶段');
+    }
+    $('hero-note').textContent = '图是其中一批猪的一次回放；数字是 13 批、' + S.reps + ' 组重复的平均，营养不足的猪日都对齐在 10%。' +
+      (mode === 'week' ? '每周调不加任何硬件，需要的只是一条按这个场历史数据学出的曲线。' : mode === 'ai' ? '逐头喂需要个体饲喂站，每头猪每次采食现配两种基础料。' : '');
+  }
+  function drawHeroTable() {
+    const box = $('hero-table'); box.replaceChildren();
+    const t = document.createElement('table'); t.className = 'data';
+    const head = t.insertRow(); ['天', '平均需要', '三阶段', '每周调', '逐头 AI（平均）'].forEach((h) => { const th = document.createElement('th'); th.textContent = h; head.appendChild(th); });
+    for (let d = 1; d <= L; d += 4) {
+      const r = t.insertRow();
+      [d, S.hero.meanNeed[d - 1], S.hero.p0[d - 1], S.hero.p1[d - 1], aiMean[d - 1]].forEach((v, i) => { const c = r.insertCell(); c.className = 'num'; c.textContent = i === 0 ? v : v.toFixed(2); });
+    }
+    box.appendChild(t);
+  }
+  document.querySelectorAll('#waste .seg button').forEach((b) => b.addEventListener('click', () => {
+    mode = b.dataset.mode;
+    document.querySelectorAll('#waste .seg button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    drawHero();
+  }));
+
+  /* ================= 2. 100 头猪 ================= */
+  const CATS = [
+    { key: 'good', name: '刚好（97%–110%）', test: (g) => g >= -0.03 && g <= 0.10 },
+    { key: 'warning', name: '多喂一成以上', test: (g) => g > 0.10 && g <= 0.20 },
+    { key: 'serious', name: '多喂两成以上', test: (g) => g > 0.20 },
+    { key: 'critical', name: '平均吃不够', test: (g) => g < -0.03 },
+  ];
+  const avgGap = (p, k) => { let s = 0; for (let t = 0; t < L; t++) s += p[k][t] / p.need[t] - 1; return s / L; };
+  const GROUPS = [
+    { k: 'group', title: '一栏一种料', need: '每周按曲线调 · 不加硬件' },
+    { k: 'i2', title: '逐头 · 常规估计', need: '个体饲喂站 + 最近 7–14 天滚动估计' },
+    { k: 'i3', title: '逐头 · AI 预测', need: '个体饲喂站 + AI' },
+  ];
+  (function drawPigs() {
+    const lg = $('pig-legend');
+    CATS.forEach((c) => { const s = document.createElement('span'); const i = document.createElement('i'); i.className = 'dot c-' + c.key; s.append(i, c.name); lg.appendChild(s); });
+    const box = $('pig-grids');
+    const counts = {};
+    GROUPS.forEach((G) => {
+      const wrap = document.createElement('div'); wrap.className = 'grid10';
+      const h = document.createElement('h3'); h.textContent = G.title;
+      const n = document.createElement('p'); n.className = 'need'; n.textContent = G.need;
+      const grid = document.createElement('div'); grid.className = 'pigs'; grid.setAttribute('role', 'list');
+      const rows = S.pigs.map((p) => ({ p, g: avgGap(p, G.k) })).sort((a, b) => a.g - b.g);
+      const cnt = {}; CATS.forEach((c) => { cnt[c.key] = 0; });
+      rows.forEach(({ p, g }) => {
+        const c = CATS.find((x) => x.test(g));
+        cnt[c.key]++;
+        const b = document.createElement('button'); b.type = 'button'; b.className = 'pig c-' + c.key; b.setAttribute('role', 'listitem');
+        b.setAttribute('aria-label', '猪 ' + p.id + '，平均' + (g >= 0 ? '多喂 ' : '少喂 ') + pct(Math.abs(g), 0));
+        const show = (e) => showTip(e, (bx) => { tipHead(bx, '猪 ' + p.id + ' · 批次 ' + p.batch); tipLine(bx, null, signed(g, 0), '平均相对需要（69 天）'); tipLine(bx, null, c.name, ''); });
+        b.addEventListener('pointerenter', show); b.addEventListener('focus', show);
+        b.addEventListener('pointerleave', hideTip); b.addEventListener('blur', hideTip);
+        grid.appendChild(b);
+      });
+      counts[G.k] = cnt;
+      const ul = document.createElement('ul'); ul.className = 'counts';
+      CATS.forEach((c) => { const li = document.createElement('li'); const i = document.createElement('i'); i.className = 'c-' + c.key; const b = document.createElement('b'); b.textContent = cnt[c.key]; li.append(i, b, ' 头 ' + c.name); ul.appendChild(li); });
+      wrap.append(h, n, grid, ul);
+      box.appendChild(wrap);
+    });
+    $('pig-callout').textContent = '平均喂得刚好的猪：一栏一种料 ' + counts.group.good + ' 头，逐头但用常规估计 ' + counts.i2.good + ' 头，逐头加 AI ' + counts.i3.good + ' 头。同样的硬件，预测准不准，差别就在这里。';
+  })();
+
+  /* ================= 3. 潜力与兑现 ================= */
+  const BARS = [
+    { tier: '不加硬件（一栏一种料）' },
+    { id: 'P0', name: '三阶段（现行）', kind: 'phase' },
+    { id: 'P1', name: '每周 · 按日龄查表', kind: 'week' },
+    { id: 'P3', name: '每周 · AI 预测', kind: 'ai' },
+    { id: 'P4', name: '每周 · 理论上限', kind: 'upper' },
+    { tier: '个体饲喂站（逐头逐日）' },
+    { id: 'I2', name: '逐头 · 常规滚动估计', kind: 'week' },
+    { id: 'I3', name: '逐头 · AI 预测', kind: 'ai' },
+    { id: 'I4', name: '逐头 · 理论上限', kind: 'upper' },
+  ];
+  const METRICS = [
+    { k: 'nEx', name: '氮排泄', change: true },
+    { k: 'sbm', name: '豆粕用量', change: true },
+    { k: 'co2e', name: '碳排放', change: true },
+    { k: 'cost', name: '原料成本', change: true },
+    { k: 'excessLys', name: '多喂的赖氨酸', change: false },
+  ];
+  let metric = 'nEx';
+  const seg = $('metric-seg');
+  METRICS.forEach((m) => { const b = document.createElement('button'); b.type = 'button'; b.textContent = m.name; b.setAttribute('aria-pressed', String(m.k === metric)); b.addEventListener('click', () => { metric = m.k; seg.querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); drawBars(); }); seg.appendChild(b); });
+  $('ladder-lede').textContent = '完全知道每头猪的需要，逐头饲喂能比三阶段少排 ' + pct(-LD.I4.nEx, 0) + ' 的氮，和国外对照试验的约 30% 相近。常规的滚动估计只兑现了 ' + pct(-LD.I2.nEx) + '，还不如每周按表调（' + pct(-LD.P1.nEx) + '）；AI 预测兑现了 ' + pct(-LD.I3.nEx) + '。按批调整时，AI 和查表持平：这批测定站猪的批间差别太小，按批个性化没有空间。';
+  function drawBars() {
+    const svg = $('bars'); clear(svg);
+    const m = METRICS.find((x) => x.k === metric);
+    const Wb = 960, rowH = 40, top = 16, left = 230, right = 120;
+    const rows = BARS.length;
+    const Hb = top + rows * rowH + 30;
+    svg.setAttribute('viewBox', '0 0 ' + Wb + ' ' + Hb);
+    const val = (id) => (m.change ? -LD[id][m.k] : LD[id][m.k]); // 变化类指标画“减少多少”
+    const vals = BARS.filter((b) => b.id).map((b) => val(b.id));
+    const vMax = Math.max(...vals) * 1.08, vMin = Math.min(0, ...vals);
+    const Xb = lin(vMin, vMax, left, Wb - right);
+    const gGrid = el('g', { class: 'grid' }, svg);
+    for (const v of niceTicks(vMin, vMax, 5)) { el('line', { x1: Xb(v), x2: Xb(v), y1: top - 4, y2: top + rows * rowH }, gGrid); txt(svg, Xb(v), top + rows * rowH + 18, (v * 100).toFixed(0) + '%', 'tick', 'middle'); }
+    el('line', { x1: Xb(0), x2: Xb(0), y1: top - 4, y2: top + rows * rowH, stroke: 'var(--axis)', 'stroke-width': 1 }, svg);
+    txt(svg, Wb - right, top + rows * rowH + 18, m.change ? '比三阶段减少' : '超出需要', 'axlab', 'start');
+    const color = { phase: 'var(--phase)', week: 'var(--week)', ai: 'var(--ai)', upper: 'none' };
+    BARS.forEach((b, i) => {
+      const y = top + i * rowH;
+      if (b.tier) { txt(svg, 0, y + rowH * 0.62, b.tier, 'dlab strong'); return; }
+      const v = val(b.id), x0 = Xb(Math.min(0, v)), x1 = Xb(Math.max(0, v)), bh = 18, by = y + (rowH - bh) / 2;
+      txt(svg, 16, y + rowH / 2 + 4, b.name, 'dlab');
+      const w = Math.max(0, x1 - x0);
+      const r = Math.min(4, w / 2);
+      // 圆角只在数据端，基线一端为直角
+      const dPath = v >= 0
+        ? `M${x0},${by}H${x1 - r}Q${x1},${by} ${x1},${by + r}V${by + bh - r}Q${x1},${by + bh} ${x1 - r},${by + bh}H${x0}Z`
+        : `M${x1},${by}H${x0 + r}Q${x0},${by} ${x0},${by + r}V${by + bh - r}Q${x0},${by + bh} ${x0 + r},${by + bh}H${x1}Z`;
+      const bar = el('path', { d: dPath, fill: color[b.kind], stroke: b.kind === 'upper' ? 'var(--ink-2)' : 'none', 'stroke-width': b.kind === 'upper' ? 1.5 : 0, 'stroke-dasharray': b.kind === 'upper' ? '4 3' : 'none', tabindex: 0 }, svg);
+      const label = b.id === 'P0' && m.change ? '基准' : (m.change ? (v > 0 ? '−' : '+') + Math.abs(v * 100).toFixed(1) + '%' : pct(v));
+      txt(svg, (v >= 0 ? x1 : x0) + (v >= 0 ? 8 : -8), y + rowH / 2 + 4, label, b.kind === 'ai' ? 'dlab strong' : 'dlab', v >= 0 ? 'start' : 'end');
+      const show = (e) => showTip(e, (bx) => {
+        tipHead(bx, b.name);
+        const r2 = LD[b.id];
+        tipLine(bx, null, pct(r2.excessLys), '多喂的赖氨酸');
+        if (b.id !== 'P0') { tipLine(bx, null, signed(r2.nEx), '氮排泄'); tipLine(bx, null, signed(r2.sbm), '豆粕'); tipLine(bx, null, signed(r2.co2e), '碳排放'); tipLine(bx, null, signed(r2.cost), '原料成本'); }
+      });
+      const hitbox = el('rect', { x: 0, y, width: Wb, height: rowH, fill: 'transparent' }, svg);
+      [hitbox, bar].forEach((n) => { n.addEventListener('pointermove', show); n.addEventListener('pointerleave', hideTip); });
+      bar.addEventListener('focus', show); bar.addEventListener('blur', hideTip);
+    });
+    // 数据表
+    const box = $('bars-table'); box.replaceChildren();
+    const t = document.createElement('table'); t.className = 'data';
+    const hd = t.insertRow(); ['做法', '多喂赖氨酸', '氮排泄', '豆粕', '碳排放', '原料成本'].forEach((h) => { const th = document.createElement('th'); th.textContent = h; hd.appendChild(th); });
+    BARS.filter((b) => b.id).forEach((b) => { const r = t.insertRow(); const c0 = r.insertCell(); c0.textContent = b.name; const x = LD[b.id]; [pct(x.excessLys), signed(x.nEx), signed(x.sbm), signed(x.co2e), signed(x.cost)].forEach((v) => { const c = r.insertCell(); c.className = 'num'; c.textContent = v; }); });
+    box.appendChild(t);
+  }
+
+  /* ================= 4. 回放 ================= */
+  const R = S.replay;
+  const rep = $('rep');
+  const Wr = 720, Hr = 380, Mr = { l: 46, r: 16, t: 14, b: 40 };
+  const wMax = Math.ceil(Math.max(...R.truthWeight, ...R.weeks.flatMap((w) => w.path.map((p) => p[0] + 2 * p[1]))) / 10) * 10;
+  const wMin = Math.floor(Math.min(...R.truthWeight, ...R.weighings.map((w) => w.kg)) / 10) * 10;
+  const Xr = lin(1, L, Mr.l, Wr - Mr.r), Yr = lin(wMin, wMax, Hr - Mr.b, Mr.t);
+  (function legendRep() {
+    const lg = $('rep-legend');
+    const item = (cls, color, label) => { const s = document.createElement('span'); const i = document.createElement('i'); i.className = cls; i.style.background = color; s.append(i, label); lg.appendChild(s); };
+    item('ln', 'var(--ink)', '实际平均体重（事后才知道）');
+    item('ln', 'var(--ai)', 'AI 估计与预测');
+    item('ar', 'rgba(27,175,122,0.18)', '预测范围（±2 标准差）');
+    item('dot', 'var(--ink)', '抽称');
+  })();
+  function drawReplay(k) {
+    clear(rep);
+    const wk = R.weeks[k];
+    const gGrid = el('g', { class: 'grid' }, rep);
+    for (const v of niceTicks(wMin, wMax, 5)) { el('line', { x1: Mr.l, x2: Wr - Mr.r, y1: Yr(v), y2: Yr(v) }, gGrid); txt(rep, Mr.l - 8, Yr(v) + 4, String(v), 'tick', 'end'); }
+    for (const d of [1, 10, 20, 30, 40, 50, 60, 69]) txt(rep, Xr(d), Hr - Mr.b + 18, String(d), 'tick', 'middle');
+    el('line', { x1: Mr.l, x2: Wr - Mr.r, y1: Hr - Mr.b, y2: Hr - Mr.b, stroke: 'var(--axis)' }, rep);
+    txt(rep, Mr.l, Hr - 6, '进栏后天数', 'axlab');
+    txt(rep, Mr.l - 38, Mr.t - 2, 'kg', 'axlab');
+    const cut = Math.max(1, wk.cutoff);
+    // 决策日之后的区域
+    el('rect', { x: Xr(cut), y: Mr.t, width: Wr - Mr.r - Xr(cut), height: Hr - Mr.t - Mr.b, fill: 'var(--bg)', opacity: 0.6 }, rep);
+    // 下一周（要定料的那一周）
+    el('rect', { x: Xr(wk.start), y: Mr.t, width: Xr(wk.end) - Xr(wk.start) + 4, height: Hr - Mr.t - Mr.b, fill: 'rgba(27,175,122,0.10)' }, rep);
+    txt(rep, (Xr(wk.start) + Xr(wk.end)) / 2, Mr.t + 14, '要定料的一周', 'axlab', 'middle');
+    // 预测带
+    const up = wk.path.map((p, i) => [Xr(i + 1), Yr(p[0] + 2 * p[1])]), lo = wk.path.map((p, i) => [Xr(i + 1), Yr(p[0] - 2 * p[1])]);
+    el('path', { d: 'M' + up.map((p) => p.join(',')).join('L') + 'L' + lo.reverse().map((p) => p.join(',')).join('L') + 'Z', fill: 'rgba(27,175,122,0.18)', stroke: 'none' }, rep);
+    el('path', { d: 'M' + R.truthWeight.map((v, i) => Xr(i + 1) + ',' + Yr(v)).join('L'), fill: 'none', stroke: 'var(--ink)', 'stroke-width': 2 }, rep);
+    el('path', { d: 'M' + wk.path.map((p, i) => Xr(i + 1) + ',' + Yr(p[0])).join('L'), fill: 'none', stroke: 'var(--ai)', 'stroke-width': 2 }, rep);
+    // 决策日竖线
+    el('line', { x1: Xr(cut), x2: Xr(cut), y1: Mr.t, y2: Hr - Mr.b, stroke: 'var(--ink-2)', 'stroke-width': 1 }, rep);
+    txt(rep, Xr(cut) + 6, Hr - Mr.b - 8, '今天：第 ' + Math.max(0, wk.cutoff) + ' 天', 'dlab strong');
+    // 抽称：看得到的实心，还没发生的空心
+    R.weighings.forEach((w) => {
+      const seen = wk.seenWeighings.includes(w.day);
+      el('circle', { cx: Xr(w.day), cy: Yr(w.kg), r: 5, fill: seen ? 'var(--ink)' : 'var(--surface)', stroke: seen ? 'var(--surface)' : 'var(--muted)', 'stroke-width': 2 }, rep);
+    });
+    // 侧栏
+    const side = $('rep-side'); side.replaceChildren();
+    const p1 = document.createElement('p'); p1.style.margin = '0'; p1.style.color = 'var(--muted)'; p1.textContent = '第 ' + wk.start + '–' + wk.end + ' 天的料，第 ' + Math.max(0, wk.cutoff) + ' 天就要定（饲料厂生产加配送提前 3 天）。';
+    const big = document.createElement('div'); big.className = 'big'; big.textContent = 'AI 定的赖氨酸：' + wk.aiLys.toFixed(1) + ' g/kg';
+    const dl = document.createElement('dl');
+    const row = (a, b) => { const dt = document.createElement('dt'); dt.textContent = a; const dd = document.createElement('dd'); dd.textContent = b; dl.append(dt, dd); };
+    row('按日龄查表', wk.tableLys.toFixed(1) + ' g/kg');
+    row('事后真值', wk.truthLys.toFixed(1) + ' g/kg');
+    row('AI 预测体重', wk.aiBw.toFixed(1) + ' kg');
+    row('实际体重', wk.truthBw.toFixed(1) + ' kg');
+    row('看得到的抽称', wk.seenWeighings.length + ' 次');
+    row('看得到的耗料', wk.seenFeedWeeks + ' 周');
+    const p2 = document.createElement('p'); p2.className = 'note'; p2.textContent = '这里显示的是未加安全余量的预测值。两次抽称之间，AI 用每周耗料推算体重；新的抽称一到，预测范围立刻收窄。';
+    side.append(p1, big, dl, p2);
+  }
+  const slider = $('rep-week');
+  slider.addEventListener('input', () => drawReplay(+slider.value));
+  let timer = null;
+  $('rep-play').addEventListener('click', () => {
+    const btn = $('rep-play');
+    if (timer) { clearInterval(timer); timer = null; btn.textContent = '播放'; return; }
+    if (+slider.value >= 9) slider.value = 0;
+    btn.textContent = '暂停';
+    drawReplay(+slider.value);
+    timer = setInterval(() => {
+      if (+slider.value >= 9) { clearInterval(timer); timer = null; btn.textContent = '播放'; return; }
+      slider.value = +slider.value + 1; drawReplay(+slider.value);
+    }, 1100);
+  });
+
+  /* ================= 5. 规模换算 ================= */
+  function drawCalc() {
+    const heads = Math.max(0, +$('c-heads').value || 0);
+    const id = $('c-method').value;
+    const scn = (document.querySelector('input[name="scn"]:checked') || { value: 'mid' }).value;
+    const b = S.base[scn] || S.base.mid;
+    const co2 = (S.co2eByScenario[scn] || S.co2eByScenario.mid)[id];
+    const days = L, r = LD[id];
+    const sbmT = -r.sbm * b.sbmKg * days * heads / 1000;
+    const nT = -r.nEx * b.nEx * days * heads / 1e6;
+    const co2T = -co2 * b.co2e * days * heads / 1000;
+    const costW = -r.cost * b.cost * days * heads / 1e4;
+    const box = $('calc-tiles'); box.replaceChildren();
+    tile(box, '少用豆粕', num(sbmT) + ' 吨', '每头 ' + num(-r.sbm * b.sbmKg * days, 1) + ' kg');
+    tile(box, '少排氮', num(nT, 1) + ' 吨', '粪污中的氮');
+    tile(box, '少排温室气体', num(co2T) + ' 吨', 'CO₂e，饲料 + 粪污');
+    tile(box, '省原料成本', num(costW) + ' 万元', '每头 ' + num(-r.cost * b.cost * days, 1) + ' 元');
+    $('calc-note').textContent = '计算：每头每天的基准值（三阶段）× 该喂法的相对变化 × ' + days + ' 天 × 出栏头数。' + (S.base[scn] ? '' : '该豆粕情景的结果尚未生成，暂按平均情景计。') + ' 成本只含玉米、豆粕和合成氨基酸。';
+  }
+  ['c-heads', 'c-method'].forEach((i) => $(i).addEventListener('input', drawCalc));
+  document.querySelectorAll('input[name="scn"]').forEach((x) => x.addEventListener('change', drawCalc));
+
+  /* ================= 6. 依据 ================= */
+  (function drawEvidence() {
+    const t = document.createElement('table'); t.className = 'data';
+    const hd = t.insertRow(); ['比较', 'AI', '上限', '最好的简单方法', '(2)', '(3)'].forEach((h) => { const th = document.createElement('th'); th.textContent = h; hd.appendChild(th); });
+    for (const [label, v] of Object.entries(S.verdicts)) {
+      const r = t.insertRow();
+      const c0 = r.insertCell(); c0.textContent = label;
+      [pct(v.ai), pct(v.upper), pct(v.bestSimple)].forEach((x) => { const c = r.insertCell(); c.className = 'num'; c.textContent = x; });
+      [v.c2, v.c3].forEach((ok) => { const c = r.insertCell(); const s = document.createElement('span'); s.className = ok ? 'pass' : 'fail'; s.textContent = ok ? '✓ 通过' : '✗ 未通过'; c.appendChild(s); });
+    }
+    $('verdicts').appendChild(t);
+    const names = { P1: '每周 · 按日龄查表', P2: '每周 · 简单外推', P3: '每周 · AI', I2: '逐头 · 滚动估计', I3: '逐头 · AI' };
+    const e = document.createElement('table'); e.className = 'data';
+    const he = e.insertRow(); ['做法', '体重', '采食', '赖氨酸需要'].forEach((h) => { const th = document.createElement('th'); th.textContent = h; he.appendChild(th); });
+    S.errors.forEach((x) => { const r = e.insertRow(); const c0 = r.insertCell(); c0.textContent = names[x.id] || x.id; [pct(x.bw), pct(x.fi), pct(x.lys)].forEach((v) => { const c = r.insertCell(); c.className = 'num'; c.textContent = v; }); });
+    $('errors').appendChild(e);
+  })();
+
+  drawHero(); drawBars(); drawReplay(+slider.value); drawCalc();
+  // 主题切换后重画（颜色取自 CSS 变量）
+  if (window.matchMedia) window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { drawHero(); drawBars(); drawReplay(+slider.value); });
+})();
+</script>
+</body>
+</html>
