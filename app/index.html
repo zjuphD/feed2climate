@@ -142,6 +142,82 @@ svg.scatter text { fill: var(--muted); font-size: 11px; }
 svg.pareto { min-width: 520px; width: 100%; height: 320px; display: block; }
 svg.pareto text { fill: var(--muted); font-size: 11px; }
 input[type="range"] { width: 100%; }
+
+/* ---------- 开始分析（引导页：输入 → 运行 → 结果） ---------- */
+.intro h1 { font-size: 24px; margin: 4px 0 4px; line-height: 1.3; }
+.intro p { color: var(--muted); margin: 0 0 14px; font-size: 14px; }
+.steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 16px; }
+.steps .st { display: flex; gap: 10px; align-items: flex-start; padding: 11px 14px; border: 1px solid var(--border); border-radius: 10px; background: var(--panel); }
+.steps .st b { flex: none; width: 26px; height: 26px; border-radius: 50%; background: var(--blue); color: #fff; display: grid; place-items: center; font-size: 13px; }
+.steps .st .t { font-weight: 600; font-size: 14px; }
+.steps .st .d { color: var(--muted); font-size: 12.5px; }
+.start-grid { display: grid; grid-template-columns: minmax(300px, 370px) minmax(0, 1fr); gap: 16px; align-items: start; }
+.start-grid > .col-in { position: sticky; top: 8px; }
+@media (max-width: 900px) { .start-grid, .steps { grid-template-columns: 1fr; } .start-grid > .col-in { position: static; } }
+.num-badge { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: var(--blue); color: #fff; font-size: 12px; margin-right: 6px; }
+.inp-sec { margin-top: 14px; }
+.inp-sec h4 { margin: 0 0 2px; font-size: 13px; }
+.inp-sec .hint { color: var(--muted); font-size: 12px; margin: 0 0 4px; }
+.inrow { display: grid; grid-template-columns: 1fr 92px 58px; gap: 8px; align-items: center; margin: 5px 0; font-size: 13px; }
+.inrow input { width: 100%; padding: 6px 8px; border: 1px solid var(--border); border-radius: 8px; background: var(--panel); color: var(--text); font-size: 13px; text-align: right; font-variant-numeric: tabular-nums; }
+.inrow input.bad { border-color: var(--red); }
+.inrow .u { color: var(--muted); font-size: 12px; }
+button.run { width: 100%; padding: 12px 16px; font-size: 15px; border-radius: 10px; margin-top: 14px; }
+.ga-src { margin-top: 8px; font-size: 12px; color: var(--muted); }
+.ga-err { color: var(--red); font-size: 12.5px; margin-top: 8px; min-height: 1em; }
+#ga-result.stale { opacity: .45; }
+.stale-tip { display: none; border: 1px dashed var(--orange); color: var(--orange); border-radius: 8px; padding: 8px 12px; font-size: 13px; margin-bottom: 12px; }
+.stale-tip.on { display: block; }
+.answer { border: 1px solid var(--blue); border-radius: 12px; padding: 16px 18px; margin-bottom: 16px; background: color-mix(in srgb, var(--blue) 7%, var(--panel)); }
+.answer .ttl { font-size: 13px; color: var(--muted); display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.answer .ttl b { color: var(--text); font-size: 15px; }
+.answer .big { display: flex; flex-wrap: wrap; gap: 6px 32px; margin: 10px 0 8px; }
+.answer .big .n { font-size: 32px; font-weight: 650; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.answer .big .n small { font-size: 13px; color: var(--muted); font-weight: 400; margin-left: 3px; }
+.answer .big .l { color: var(--muted); font-size: 12px; }
+.answer .mix { font-size: 13.5px; }
+svg.gachart { width: 100%; height: auto; display: block; }
+svg.gachart text { fill: var(--muted); font-size: 11px; }
+svg.gachart .grid { stroke: var(--border); stroke-width: 1; }
+svg.gachart .halo { paint-order: stroke; stroke: var(--panel); stroke-width: 3px; }
+svg.gachart .std { stroke: var(--muted); stroke-width: 1.4; stroke-dasharray: 4 3; fill: none; }
+svg.gachart .est { stroke: var(--blue); stroke-width: 2.2; fill: none; }
+svg.gachart .band { fill: var(--blue); opacity: .18; }
+svg.gachart .win { fill: var(--blue); opacity: .08; }
+svg.gachart .cut { stroke: var(--muted); stroke-dasharray: 3 3; }
+svg.gachart .obs { fill: var(--text); stroke: var(--panel); stroke-width: 1.5; }
+svg.gachart .fc { fill: var(--orange); stroke: var(--panel); stroke-width: 1.5; }
+svg.gachart .fcbar { stroke: var(--orange); stroke-width: 2; }
+svg.gachart .tru { fill: none; stroke: var(--green); stroke-width: 2; }
+.lg { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 12px; color: var(--muted); margin-top: 6px; }
+.lg i { display: inline-block; width: 18px; height: 0; border-top: 2px solid; vertical-align: middle; margin-right: 5px; }
+.lg i.dash { border-top-style: dashed; }
+.lg i.dot { width: 9px; height: 9px; border: 0; border-radius: 50%; }
+.lg i.box { width: 14px; height: 9px; border: 0; opacity: .3; }
+.rec { display: grid; grid-template-columns: 11em 1fr 4.2em 5.6em; gap: 8px; align-items: center; font-size: 13px; margin: 5px 0; }
+.rec .track { height: 12px; background: var(--chip); border-radius: 6px; overflow: hidden; }
+.rec .fill { height: 100%; background: var(--violet); border-radius: 6px; }
+.rec .pc, .rec .kg { text-align: right; font-variant-numeric: tabular-nums; }
+.rec .kg { color: var(--muted); }
+.rec.head { color: var(--muted); font-size: 12px; margin-bottom: 2px; }
+@media (max-width: 560px) { .rec { grid-template-columns: 7.5em 1fr 3.8em 4.6em; } }
+.cb { display: grid; grid-template-columns: 9.5em minmax(0, 1fr); gap: 4px 14px; padding: 10px 0; border-top: 1px solid var(--border); align-items: center; }
+.cb:first-of-type { border-top: 0; }
+.cb .nm { font-size: 13px; }
+.cb .nm small { display: block; color: var(--muted); font-size: 11px; }
+.cb .bars { display: grid; gap: 4px; }
+.cb .line { display: grid; grid-template-columns: minmax(0, 1fr) 11.5em; gap: 8px; align-items: center; font-size: 12px; }
+.cb .track { height: 10px; background: var(--chip); border-radius: 5px; overflow: hidden; }
+.cb .fill { height: 100%; border-radius: 5px; }
+.cb .fill.ph { background: var(--muted); opacity: .55; }
+.cb .fill.ai { background: var(--blue); }
+.cb .val { text-align: right; font-variant-numeric: tabular-nums; }
+.dl { display: inline-block; margin-left: 6px; padding: 0 6px; border-radius: 999px; font-size: 11px; background: var(--chip); color: var(--muted); }
+.dl.down { background: color-mix(in srgb, var(--green) 15%, transparent); color: var(--green); }
+.dl.up { background: color-mix(in srgb, var(--red) 15%, transparent); color: var(--red); }
+@media (max-width: 560px) { .cb { grid-template-columns: 1fr; } }
+ol.todo { margin: 0; padding-left: 20px; line-height: 1.8; }
+ol.todo li { margin-bottom: 2px; }
 </style>
 </head>
 <body>
@@ -152,7 +228,8 @@ input[type="range"] { width: 100%; }
   </div>
 
   <nav class="tabs" role="tablist" aria-label="页面">
-    <button class="tab" role="tab" aria-selected="true" data-view="overview">00 总览</button>
+    <button class="tab" role="tab" aria-selected="true" data-view="start">开始分析</button>
+    <button class="tab" role="tab" aria-selected="false" data-view="overview">00 原理总览</button>
     <button class="tab" role="tab" aria-selected="false" data-view="history">01 当前状态与营养检查</button>
     <button class="tab" role="tab" aria-selected="false" data-view="ai">02 AI 方案设计</button>
     <button class="tab" role="tab" aria-selected="false" data-view="compare">03 A/B 混合对比（单栏）</button>
@@ -160,8 +237,60 @@ input[type="range"] { width: 100%; }
   </nav>
 
   <main>
+    <!-- ============ 开始分析（引导页） ============ -->
+    <section id="view-start">
+      <div class="intro">
+        <h1>这批猪下周该喂什么料？</h1>
+        <p>填入称重和耗料记录，得到下一周的饲料配方，并看它和三阶段换料相比，成本、氮排泄和模型化排放差多少。</p>
+      </div>
+      <div class="steps">
+        <div class="st"><b>1</b><div><div class="t">填记录</div><div class="d">选一批示例，或改成你自己的数字</div></div></div>
+        <div class="st"><b>2</b><div><div class="t">点“生成下周方案”</div><div class="d">AI 预测下一周的体重和采食</div></div></div>
+        <div class="st"><b>3</b><div><div class="t">看结果，照着做</div><div class="d">料浓度、配方、对比三阶段、下一步</div></div></div>
+      </div>
+
+      <div class="start-grid">
+        <div class="col-in">
+          <form class="panel" id="ga-form" autocomplete="off">
+            <div class="panel-head"><h2 class="panel-title"><span class="num-badge">1</span>填入这批猪的记录</h2></div>
+            <div class="grid">
+              <label class="field">载入示例批次（公开数据）
+                <select id="ga-batch"></select>
+              </label>
+              <label class="field">要定哪一周的料
+                <select id="ga-week"></select>
+              </label>
+            </div>
+            <div class="inp-sec">
+              <h4>称重：全群平均体重</h4>
+              <p class="hint">进栏当天一次，之后每三周抽称一次。只列定料日前已有的。</p>
+              <div id="ga-weigh"></div>
+            </div>
+            <div class="inp-sec">
+              <h4>耗料：每周每头每天平均采食</h4>
+              <p class="hint">整周耗料 ÷ 头数 ÷ 7 天。只列定料日前已结束的周。</p>
+              <div id="ga-feed"></div>
+            </div>
+            <div class="inp-sec">
+              <h4>安全余量</h4>
+              <p class="hint" id="ga-margin-hint"></p>
+              <label class="inrow"><span>赖氨酸在预测上再加</span><input class="ga-margin" id="ga-margin" inputmode="decimal" value="14.5" aria-label="安全余量百分比"><span class="u">%</span></label>
+            </div>
+            <button type="submit" class="primary run" id="ga-run">2　生成下周方案</button>
+            <div class="ga-err" id="ga-err" role="alert"></div>
+            <div class="ga-src" id="ga-src"></div>
+          </form>
+        </div>
+
+        <div class="col-out">
+          <div class="stale-tip" id="ga-stale">数字已改动。点左侧“生成下周方案”更新结果。</div>
+          <div id="ga-result" aria-live="polite"></div>
+        </div>
+      </div>
+    </section>
+
     <!-- ============ 00 总览 ============ -->
-    <section id="view-overview">
+    <section id="view-overview" hidden>
       <div class="panel hero">
         <h1>同一栏猪、同一条营养标准，<em>AI 把“喂什么”变成一个可优化的减排变量</em></h1>
         <p class="lead">饲喂配方不是固定表格：它同时决定饲料的碳足迹、氮排泄与粪污甲烷。Feed2Climate 用 100 头育肥猪的真实生长/采食记录做聚类分层，用线性规划在营养约束下求解最优配方，并把“分层饲喂 vs 一刀切饲喂”的栏舍成本与模型化排放差异算给你看。</p>
@@ -394,6 +523,7 @@ input[type="range"] { width: 100%; }
           </label>
         </div>
         <div id="fc-result" style="margin-top:12px;"></div>
+        <div class="notice info" style="margin:10px 0 0;">这张卡按预测点估计配料，没有加安全余量，净能也取预测值。要带安全余量、取群体标准表净能并和三阶段对比，用“开始分析”页。</div>
         <div class="footnote">预测只用于下一周定料（提前 3 天决定），不预测料肉比；区间为 ±1.96 倍标准差。回放（130 个留一批案例）中，体重区间实际覆盖约 86%，采食约 95%，所以体重区间偏窄，不能当作 95% 保证；回放验证见“04 来源与验证”页。</div>
       </div>
 
@@ -587,15 +717,16 @@ input[type="range"] { width: 100%; }
   const E = window.F2C_ENGINE;
   const AI = window.F2C_AI;
   const $ = (id) => document.getElementById(id);
-  const state = { view: 'overview', animal: '86', cutoff: 42, metric: 'weight', ai: { cutoff: 42, k: 3, seed: 42, mode: 'mean_margin', w: 0.5 } };
+  const state = { view: 'start', animal: '86', cutoff: 42, metric: 'weight', ai: { cutoff: 42, k: 3, seed: 42, mode: 'mean_margin', w: 0.5 } };
   const CLUSTER_COLORS = ['#3d8bff', '#18a25a', '#ef7b2f', '#9a6ee8', '#00a4b8'];
 
   /* ---------------- 页面切换 ---------------- */
-  const VIEWS = ['overview', 'history', 'ai', 'compare', 'evidence'];
+  const VIEWS = ['start', 'overview', 'history', 'ai', 'compare', 'evidence'];
   function setView(view) {
     state.view = view;
     document.querySelectorAll('.tab').forEach((t) => t.setAttribute('aria-selected', String(t.dataset.view === view)));
     VIEWS.forEach((v) => { $('view-' + v).hidden = v !== view; });
+    if (view === 'start') renderStart();
     if (view === 'overview') renderOverview();
     if (view === 'compare') renderCompare();
     if (view === 'evidence') renderEvidence();
@@ -1194,9 +1325,304 @@ input[type="range"] { width: 100%; }
     ].map((x) => `<li>${x}</li>`).join('');
   }
 
+  /* ---------------- 开始分析：输入 → 运行 → 结果 ---------------- */
+  // 安全余量与对照口径来自回放（docs/replay/results-cn.json，13 批留一批 × 30 次重复）：
+  //   按批 AI：赖氨酸余量 14.5% 时营养不足猪日约 10%，余量 0 时约 41%。
+  //   三阶段（现行）：余量 4% 时营养不足猪日约 10%。
+  // 能量取群体标准表（回放里各做法相同），AI 只决定赖氨酸；每头每天的数字用预测的体重、日增重和采食。
+  const GFM = window.F2C_FORMULATION;
+  const GA_MARGIN_AI = 14.5, GA_MARGIN_PHASE = 4;   // %
+  const GA_PHASES = [1, 26, 51];                    // 三阶段换料日（第 1–25、26–50、51 天起）
+  const GA = { week: 0, batch: 0, vals: {}, orig: {}, ready: false, last: null };
+  const gaNum = (v) => (v === '' || v == null ? NaN : Number(String(v).replace(',', '.')));
+  const gf = (x, n) => Number(x).toFixed(n);
+
+  function gaFeedWeeks(s) {
+    const L = s.F.DEFAULTS.lastDay, len = s.F.DEFAULTS.weekLen || 7, out = [];
+    for (let k = 0; k < Math.ceil(L / len); k++) { const start = 1 + len * k; out.push({ k, start, end: Math.min(L, start + len - 1) }); }
+    return out;
+  }
+  // 定料日前看得到的记录：进栏称重 + 定料日前的抽称；定料日前已结束的整周耗料
+  function gaVisible(s, wk) {
+    return { wd: s.opts.weighDays.filter((d) => d === 1 || d <= wk.cutoff), fw: gaFeedWeeks(s).filter((w) => w.end <= wk.cutoff) };
+  }
+  function gaEnsureObs(s) {
+    if (!s.obsAll) s.obsAll = s.batches.map((bb) => s.F.observeBatch(bb, s.opts, s.F.obsSeed(0, bb.code)));
+  }
+  function gaLoadSample(i) {
+    const s = fcSetup(); gaEnsureObs(s);
+    GA.batch = i; GA.vals = {};
+    s.obsAll[i].weighings.forEach((w) => { GA.vals['w' + w.day] = gf(w.mean, 1); });
+    s.obsAll[i].weeks.forEach((wk, k) => { GA.vals['f' + k] = gf(wk.fi, 2); });
+    GA.orig = { ...GA.vals };
+  }
+  function gaKeys(s, wk) { const v = gaVisible(s, wk); return v.wd.map((d) => 'w' + d).concat(v.fw.map((w) => 'f' + w.k)); }
+  function gaDirty(s, wk) { return gaKeys(s, wk).some((k) => !(Math.abs(gaNum(GA.vals[k]) - gaNum(GA.orig[k])) < 1e-9)); }
+  function gaValidKey(key, raw) {
+    const v = gaNum(raw);
+    return key[0] === 'w' ? (v >= 15 && v <= 150) : (v >= 0.3 && v <= 6);
+  }
+  function gaValidate(s, wk) {
+    for (const k of gaKeys(s, wk)) {
+      if (gaValidKey(k, GA.vals[k])) continue;
+      return k[0] === 'w' ? `第 ${k.slice(1)} 天的体重请填 15–150 kg（本工具按育肥猪建模）` : `第 ${Number(k.slice(1)) + 1} 周的采食请填 0.3–6 kg/头/天`;
+    }
+    const m = gaNum($('ga-margin').value);
+    if (!(m >= 0 && m <= 50)) return '安全余量请填 0–50 之间的数字';
+    return '';
+  }
+  function gaBuildObs(s, wk) {
+    const v = gaVisible(s, wk), D = s.F.DEFAULTS;
+    return {
+      code: '录入', n: 0, lastDay: D.lastDay, weighCV: D.weighCV, feedCV: D.feedCV,
+      weighings: v.wd.map((d) => ({ day: d, mean: gaNum(GA.vals['w' + d]) })),
+      weeks: v.fw.map((w) => ({ start: w.start, end: w.end, fi: gaNum(GA.vals['f' + w.k]) })),
+    };
+  }
+
+  function gaRenderForm() {
+    const s = fcSetup(), wk = s.weeks[GA.week], v = gaVisible(s, wk);
+    const row = (key, label, unit) => `<label class="inrow"><span>${label}</span><input class="ga-in" data-key="${key}" inputmode="decimal" value="${GA.vals[key] == null ? '' : GA.vals[key]}" aria-label="${label}"><span class="u">${unit}</span></label>`;
+    $('ga-weigh').innerHTML = v.wd.map((d) => row('w' + d, d === 1 ? '进栏当天（第 1 天）' : `第 ${d} 天`, 'kg')).join('');
+    $('ga-feed').innerHTML = v.fw.length
+      ? v.fw.map((w) => row('f' + w.k, `第 ${w.k + 1} 周（第 ${w.start}–${w.end} 天）`, 'kg/天')).join('')
+      : '<p class="hint">这一周在进栏前几天就要定料，还没有耗料记录，AI 先按群体标准表估计。</p>';
+    gaMarkBad();
+  }
+  function gaMarkBad() {
+    document.querySelectorAll('#ga-form .ga-in').forEach((el) => el.classList.toggle('bad', !gaValidKey(el.dataset.key, el.value)));
+  }
+  function gaSrc() {
+    const s = fcSetup(), wk = s.weeks[GA.week];
+    $('ga-src').textContent = gaDirty(s, wk)
+      ? '当前是你录入的数据：AI 的群体规律取自 13 个公开批次，不是你场里的历史。'
+      : `当前是示例批次 ${s.batches[GA.batch].code}（公开数据回放）：群体规律取自其余 12 批，只用定料日前看得到的记录。`;
+  }
+
+  function gaCompute() {
+    const s = fcSetup(), F = s.F, wk = s.weeks[GA.week], T = wk.target, i = GA.batch;
+    gaEnsureObs(s);
+    const err = gaValidate(s, wk);
+    if (err) throw new Error(err);
+    const own = gaDirty(s, wk);
+    const obs = own ? gaBuildObs(s, wk) : s.obsAll[i];
+    const pop = own
+      ? (s.fullPop || (s.fullPop = F.fitPopulation(s.obsAll, P, s.opts)))
+      : (s.pops[i] || (s.pops[i] = F.fitPopulation(s.obsAll.filter((_, j) => j !== i), P, s.opts)));
+    const out = F.aiForecast(obs, pop, P, wk.cutoff, [T], s.opts);
+    const f = out && out.forecasts && out.forecasts[0];
+    if (!f || ![f.bw, f.fi, f.adg, f.sdBw, f.sdFi, f.lys].every(Number.isFinite)) throw new Error('预测结果无效，请检查填入的数字');
+    const margin = gaNum($('ga-margin').value) / 100;
+    const fo = { sbmScenario: 'mid' };
+    // 从第 1 周到所选这一周，逐周：用当周定料日前看得到的记录预测、配料；三阶段按回放定义（第 1、26、51 天换料）
+    const hist = [];
+    for (let kk = 0; kk <= GA.week; kk++) {
+      const w = s.weeks[kk], Tk = w.target;
+      const fk = kk === GA.week ? f : F.aiForecast(obs, pop, P, w.cutoff, [Tk], s.opts).forecasts[0];
+      if (!fk || ![fk.bw, fk.fi, fk.adg, fk.lys].every(Number.isFinite)) throw new Error('预测结果无效，请检查填入的数字');
+      const nek = pop.table[Tk - 1].ne, pd = GA_PHASES.filter((d) => d <= w.start).pop();
+      const dA = GFM.formulate(P, { ne: nek, lys: fk.lys * (1 + margin) }, fo);
+      const dB = GFM.formulate(P, { ne: nek, lys: pop.table[pd - 1].lys * (1 + GA_MARGIN_PHASE / 100) }, fo);
+      if (dA.status !== 'optimal' || dB.status !== 'optimal') throw new Error(`第 ${w.start}–${w.end} 天没有可行配方：要求超出玉米、豆粕和合成氨基酸能达到的范围`);
+      const days = w.end - w.start + 1, pig = { bw: fk.bw, adg: fk.adg, fi: fk.fi };
+      const side = (d) => {
+        const a = GFM.account(P, d.perKg, pig, { system: 'slurry_nocrust', climate: 'warm_moist' });
+        return { d, lys: d.perKg.lys, priceT: d.perKg.price * 1000, cost: d.perKg.price * fk.fi, nEx: a.nExcreted, co2e: a.total, lysSup: d.perKg.lys * fk.fi };
+      };
+      hist.push({ start: w.start, end: w.end, days, fi: fk.fi, A: side(dA), B: side(dB) });
+    }
+    const cum = (k) => hist.reduce((t, h) => { for (const m of ['cost', 'nEx', 'co2e', 'lysSup']) t[m] += h[k][m] * h.days; return t; }, { cost: 0, nEx: 0, co2e: 0, lysSup: 0 });
+    const cur = hist[hist.length - 1];
+    let truthBw = null;
+    if (!own) { if (!s.truths[i]) s.truths[i] = F.truthBatch(s.batches[i], P); truthBw = s.truths[i].days[T - 1].bw; }
+    return {
+      s, wk, T, f, own, margin, A: cur.A, dA: cur.A.d, hist, cumA: cum('A'), cumB: cum('B'),
+      path: out.path, std: pop.table.map((r) => r.bw), weighings: F.visible(obs, wk.cutoff).weighings, truthBw, code: s.batches[i].code,
+    };
+  }
+
+  // 每周料浓度：三阶段是台阶，本方案按周调整（到所选这一周为止）
+  function gaStepChart(R) {
+    const W = 720, H = 210, m = { l: 48, r: 16, t: 14, b: 32 }, iw = W - m.l - m.r, ih = H - m.t - m.b;
+    const L = R.s.F.DEFAULTS.lastDay, wk = R.wk, hist = R.hist;
+    const x = (d) => m.l + (d - 1) / (L - 1) * iw;
+    const all = hist.flatMap((h) => [h.A.lys, h.B.lys]);
+    const lo = Math.floor(Math.min(...all) - 0.5), hi = Math.ceil(Math.max(...all) + 0.5);
+    const y = (v) => m.t + (1 - (v - lo) / (hi - lo)) * ih;
+    const stepPath = (k) => hist.map((h, j) => (j ? `V${y(h[k].lys).toFixed(1)}` : `M${x(h.start).toFixed(1)},${y(h[k].lys).toFixed(1)}`) + `H${x(Math.min(L, h.end + 1)).toFixed(1)}`).join('');
+    let g = '';
+    const step = (hi - lo) / 2 <= 6 ? 2 : 4;
+    for (let v = lo + ((lo % step) ? step - (lo % step) : 0); v <= hi; v += step) g += `<line class="grid" x1="${m.l}" x2="${W - m.r}" y1="${y(v).toFixed(1)}" y2="${y(v).toFixed(1)}"/><text x="${m.l - 6}" y="${(y(v) + 4).toFixed(1)}" text-anchor="end">${v}</text>`;
+    [1, 14, 28, 42, 56, L].forEach((d) => { g += `<text x="${x(d).toFixed(1)}" y="${H - 14}" text-anchor="middle">${d}</text>`; });
+    g += `<text x="${m.l + iw / 2}" y="${H - 1}" text-anchor="middle">进栏后天数</text><text x="${m.l - 36}" y="${m.t - 2}" text-anchor="start">g/kg</text>`;
+    g += `<rect class="win" x="${x(wk.start).toFixed(1)}" y="${m.t}" width="${(x(Math.min(L, wk.end + 1)) - x(wk.start)).toFixed(1)}" height="${ih}"/>`;
+    g += `<path class="std" style="stroke-width:2.4;stroke-dasharray:none" d="${stepPath('B')}"/><path class="est" d="${stepPath('A')}"/>`;
+    return `<svg class="gachart" viewBox="0 0 ${W} ${H}" role="img" aria-label="每周饲料赖氨酸浓度：三阶段与本方案">${g}</svg>
+      <div class="lg"><span><i style="border-color:var(--muted)"></i>三阶段（余量 ${GA_MARGIN_PHASE}%）</span><span><i style="border-color:var(--blue)"></i>本方案（每周按预测，余量 ${gf(R.margin * 100, 1)}%）</span><span><i class="box" style="background:var(--blue);border-top:0"></i>所选这一周</span></div>`;
+  }
+
+  function gaChart(R) {
+    const W = 720, H = 300, m = { l: 48, r: 16, t: 26, b: 34 }, iw = W - m.l - m.r, ih = H - m.t - m.b, Z = 1.96;
+    const L = R.s.F.DEFAULTS.lastDay, wk = R.wk, f = R.f;
+    const x = (d) => m.l + (d - 1) / (L - 1) * iw;
+    const vals = [];
+    R.path.forEach((p) => vals.push(p.W - Z * p.sdW, p.W + Z * p.sdW));
+    R.std.forEach((v) => vals.push(v));
+    R.weighings.forEach((w) => vals.push(w.mean));
+    if (R.truthBw != null) vals.push(R.truthBw);
+    const lo = Math.floor(Math.min(...vals) / 10) * 10, hi = Math.ceil(Math.max(...vals) / 10) * 10;
+    const y = (v) => m.t + (1 - (v - lo) / (hi - lo)) * ih;
+    const pt = (d, v) => x(d).toFixed(1) + ',' + y(v).toFixed(1);
+    const line = (arr) => arr.map((p, k) => (k ? 'L' : 'M') + pt(p[0], p[1])).join('');
+    const step = [5, 10, 20, 25, 50].find((st) => (hi - lo) / st <= 6) || 50;
+    let g = '';
+    for (let v = lo; v <= hi + 1e-9; v += step) g += `<line class="grid" x1="${m.l}" x2="${W - m.r}" y1="${y(v).toFixed(1)}" y2="${y(v).toFixed(1)}"/><text x="${m.l - 6}" y="${(y(v) + 4).toFixed(1)}" text-anchor="end">${v}</text>`;
+    [1, 14, 28, 42, 56, L].forEach((d) => { g += `<text x="${x(d).toFixed(1)}" y="${H - 16}" text-anchor="middle">${d}</text>`; });
+    g += `<text x="${m.l + iw / 2}" y="${H - 2}" text-anchor="middle">进栏后天数</text><text x="${m.l - 36}" y="${m.t - 10}" text-anchor="start">体重 kg</text>`;
+    // 下一周窗口与定料日
+    g += `<rect class="win" x="${x(wk.start).toFixed(1)}" y="${m.t}" width="${(x(wk.end) - x(wk.start)).toFixed(1)}" height="${ih}"/>`;
+    g += `<text x="${((x(wk.start) + x(wk.end)) / 2).toFixed(1)}" y="${m.t - 8}" text-anchor="middle" style="fill:var(--blue)">下一周</text>`;
+    if (wk.cutoff >= 1) g += `<line class="cut" x1="${x(wk.cutoff).toFixed(1)}" x2="${x(wk.cutoff).toFixed(1)}" y1="${m.t}" y2="${m.t + ih}"/><text x="${(x(wk.cutoff) - 4).toFixed(1)}" y="${m.t + 12}" text-anchor="end">定料日 第 ${wk.cutoff} 天</text>`;
+    // 预测范围、标准曲线、AI 估计
+    const bp = R.path.filter((p) => p.day >= Math.max(1, wk.cutoff) && p.day <= R.T);
+    if (bp.length > 1) g += `<path class="band" d="${line(bp.map((p) => [p.day, p.W + Z * p.sdW]))}${bp.slice().reverse().map((p) => 'L' + pt(p.day, p.W - Z * p.sdW)).join('')}Z"/>`;
+    g += `<path class="std" d="${line(R.std.map((v, k) => [k + 1, v]))}"/>`;
+    g += `<path class="est" d="${line(R.path.map((p) => [p.day, p.W]))}"/>`;
+    R.weighings.forEach((w) => { g += `<circle class="obs" cx="${x(w.day).toFixed(1)}" cy="${y(w.mean).toFixed(1)}" r="4.5"/>`; });
+    // 目标日预测（带范围）与事后实际值
+    const bx = x(R.T), left = bx > W - 170;
+    g += `<line class="fcbar" x1="${bx.toFixed(1)}" x2="${bx.toFixed(1)}" y1="${y(f.bw + Z * f.sdBw).toFixed(1)}" y2="${y(f.bw - Z * f.sdBw).toFixed(1)}"/>`;
+    [f.bw + Z * f.sdBw, f.bw - Z * f.sdBw].forEach((v) => { g += `<line class="fcbar" x1="${(bx - 5).toFixed(1)}" x2="${(bx + 5).toFixed(1)}" y1="${y(v).toFixed(1)}" y2="${y(v).toFixed(1)}"/>`; });
+    g += `<circle class="fc" cx="${bx.toFixed(1)}" cy="${y(f.bw).toFixed(1)}" r="5.5"/>`;
+    // 预测值与事后实际值很接近时，两个标签上下错开，避免叠在一起
+    const close = R.truthBw != null && Math.abs(y(R.truthBw) - y(f.bw)) < 18;
+    g += `<text class="halo" x="${(bx + (left ? -10 : 10)).toFixed(1)}" y="${(y(f.bw) + (close ? -10 : 4)).toFixed(1)}" text-anchor="${left ? 'end' : 'start'}" style="fill:var(--text);font-size:12px">预测 ${gf(f.bw, 1)} ± ${gf(Z * f.sdBw, 1)} kg</text>`;
+    if (R.truthBw != null) {
+      g += `<circle class="tru" cx="${bx.toFixed(1)}" cy="${y(R.truthBw).toFixed(1)}" r="7"/>`;
+      g += `<text class="halo" x="${(bx + (left ? -12 : 12)).toFixed(1)}" y="${(y(f.bw) + (close ? 22 : (R.truthBw > f.bw ? y(R.truthBw) - y(f.bw) - 6 : y(R.truthBw) - y(f.bw) + 16))).toFixed(1)}" text-anchor="${left ? 'end' : 'start'}" style="fill:var(--green)">事后实际 ${gf(R.truthBw, 1)} kg</text>`;
+    }
+    const legend = `<div class="lg"><span><i class="dot" style="background:var(--text)"></i>称重</span><span><i style="border-color:var(--blue)"></i>AI 估计</span><span><i class="box" style="background:var(--blue);border-top:0;height:9px"></i>预测范围</span><span><i class="dash" style="border-color:var(--muted)"></i>同日龄标准体重</span><span><i class="dot" style="background:var(--orange)"></i>下一周预测</span>${R.truthBw != null ? '<span><i class="dot" style="background:none;border:2px solid var(--green);width:9px;height:9px"></i>事后实际（仅示例有）</span>' : ''}</div>`;
+    return `<svg class="gachart" viewBox="0 0 ${W} ${H}" role="img" aria-label="这批猪的体重：称重、AI 估计与下一周预测">${g}</svg>${legend}`;
+  }
+
+  function gaRender(R) {
+    const { wk, f, A, dA } = R;
+    const nm = (k) => (P.ingredients[k] && P.ingredients[k].name) || k;
+    const short = (k) => nm(k).replace(/（.*?）/g, '');
+    const rec = Object.keys(dA.recipe).map((k) => [k, dA.recipe[k]]).filter((e) => e[1] > 1e-6).sort((p, q) => q[1] - p[1]);
+    const top = rec.length ? rec[0][1] : 1;
+    const mix = rec.map(([k, v]) => `${short(k)} ${gf(v * 100, v >= 0.1 ? 1 : 2)}%`).join(' + ');
+    const recRows = rec.map(([k, v]) => `<div class="rec"><span>${nm(k)}</span><span class="track"><span class="fill" style="display:block;width:${Math.max(1.5, v / top * 100).toFixed(1)}%"></span></span><span class="pc">${gf(v * 100, v >= 0.1 ? 1 : 2)}%</span><span class="kg">${gf(v * 1000, 1)} kg</span></div>`).join('');
+    const src = R.own ? '你录入的数据' : `示例批次 ${R.code} · 公开数据回放`;
+
+    const metric = (label, sub, a, b, fmt, neutral) => {
+      const mx = Math.max(a, b) || 1, d = b ? a / b - 1 : 0;
+      const cls = neutral || Math.abs(d) < 0.0005 ? '' : (d < 0 ? 'down' : 'up');
+      const chip = `<span class="dl ${cls}">${d > 0.0005 ? '+' : (d < -0.0005 ? '−' : '')}${gf(Math.abs(d) * 100, 1)}%</span>`;
+      return `<div class="cb"><div class="nm">${label}<small>${sub}</small></div><div class="bars">
+        <div class="line"><span class="track"><span class="fill ph" style="display:block;width:${(b / mx * 100).toFixed(1)}%"></span></span><span class="val">${fmt(b)}</span></div>
+        <div class="line"><span class="track"><span class="fill ai" style="display:block;width:${(a / mx * 100).toFixed(1)}%"></span></span><span class="val">${fmt(a)}${chip}</span></div></div></div>`;
+    };
+    const cA = R.cumA, cB = R.cumB;
+    const cmp = metric('赖氨酸供给', 'SID 赖氨酸总量', cA.lysSup, cB.lysSup, (v) => gf(v, 0) + ' g', true)
+      + metric('料成本', '玉米、豆粕、合成氨基酸', cA.cost, cB.cost, (v) => gf(v, 1) + ' 元', false)
+      + metric('氮排泄', '粪污中的氮', cA.nEx, cB.nEx, (v) => gf(v, 0) + ' g', false)
+      + metric('CO₂e', '饲料 + 粪污（模型化）', cA.co2e, cB.co2e, (v) => gf(v, 2) + ' kg', false);
+
+    const notes = [];
+    if (dA.neRelaxed) notes.push(`<div class="notice">能量未达标：玉米–豆粕配方不含油脂，净能只能到 ${gf(dA.neUsed, 2)} MJ/kg（标准 ${gf(dA.neTarget, 2)}）。这一周的结果只代表赖氨酸和成本。</div>`);
+    if (dA.lysCapped) notes.push('<div class="notice bad">赖氨酸未达标：要求超过这些原料能达到的上限，配方按上限配制。</div>');
+    if (R.own) notes.push('<div class="notice info">你录入的数据：安全余量 14.5% 是在公开数据上校准的，换成你的猪场要重新验证。</div>');
+    if (Math.abs(R.margin * 100 - GA_MARGIN_AI) > 0.05) notes.push(`<div class="notice info">你把安全余量改成了 ${gf(R.margin * 100, 1)}%（回放校准值 ${GA_MARGIN_AI}%）：余量越小，吃不够的猪日越多。</div>`);
+
+    return `
+    <div class="answer">
+      <div class="ttl"><b>第 ${wk.start}–${wk.end} 天的料</b><span class="badge">${src}</span></div>
+      <div class="big">
+        <div><div class="n">${gf(A.lys, 1)}<small>g/kg</small></div><div class="l">SID 赖氨酸（含 ${gf(R.margin * 100, 1)}% 安全余量）</div></div>
+        <div><div class="n">${gf(dA.perKg.ne, 1)}<small>MJ/kg</small></div><div class="l">净能（群体标准表）</div></div>
+        <div><div class="n">${Math.round(A.priceT).toLocaleString('en-US')}<small>元/吨</small></div><div class="l">原料成本</div></div>
+      </div>
+      <div class="mix">配料：${mix}</div>
+      <div class="footnote" style="margin-top:6px">净能不由 AI 预测，取群体标准表；回放只验证了赖氨酸这一项决定。</div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head"><h2 class="panel-title">AI 预测：下一周的体重</h2><span class="panel-sub">预测第 ${R.T} 天：${gf(f.bw, 1)} kg，采食 ${gf(f.fi, 2)} kg/天</span></div>
+      ${gaChart(R)}
+      <div class="footnote">阴影是预测范围（±1.96 倍标准差）。回放中体重范围实际只覆盖约 86%，偏窄，不要当保证。</div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head"><h2 class="panel-title">怎么配这一周的料</h2><span class="panel-sub">满足上面的赖氨酸和净能，成本最低</span></div>
+      <div class="rec head"><span>原料</span><span></span><span style="text-align:right">占比</span><span style="text-align:right">每吨料</span></div>
+      ${recRows}
+      ${notes.join('')}
+    </div>
+
+    <div class="panel">
+      <div class="panel-head"><h2 class="panel-title">和三阶段换料比</h2><span class="panel-sub">三阶段是台阶，本方案每周跟着猪走</span></div>
+      ${gaStepChart(R)}
+      <h3 style="font-size:13px;margin:16px 0 0;">第 1 天到第 ${wk.end} 天累计，每头猪（灰：三阶段　蓝：本方案）</h3>
+      ${cmp}
+      <div class="footnote">单周的差别正负都有：三阶段刚换料时最贴近需要，阶段末最浪费，所以这里看累计。回放里两种做法吃不够的猪日都对齐在约 10%。13 批全程平均（回放）：氮排泄 −10.0%，CO₂e −2.1%，成本 −0.8%；按批预测和查表相同，AI 的增益主要在逐头饲喂。</div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head"><h2 class="panel-title">接下来怎么做</h2></div>
+      <ol class="todo">
+        <li><b>交给营养师审核。</b>工具只给建议，不控制饲料厂或饲喂设备。</li>
+        <li><b>${wk.cutoff >= 1 ? '第 ' + wk.cutoff + ' 天前' : '进栏前'}把料号定下来。</b>饲料厂生产加配送要提前 3 天。</li>
+        <li><b>下一周再来一次：</b>称重、记下这周耗料，回到左边改数字，再点“生成下周方案”。</li>
+        <li>想拿自己的现行配方和价格比，去“03 A/B 混合对比”。</li>
+      </ol>
+    </div>`;
+  }
+
+  function gaRun() {
+    $('ga-err').textContent = '';
+    try {
+      const R = gaCompute();
+      GA.last = R;
+      $('ga-result').innerHTML = gaRender(R);
+      $('ga-result').classList.remove('stale');
+      $('ga-stale').classList.remove('on');
+    } catch (e) {
+      $('ga-err').textContent = e && e.message ? e.message : String(e);
+      // 算不出来时，屏幕上若还留着旧结果，要标明它不是当前这组数字的结果
+      if (GA.last) { $('ga-result').classList.add('stale'); $('ga-stale').classList.add('on'); }
+    }
+    gaSrc();
+  }
+  function gaStale() {
+    if (GA.last) { $('ga-result').classList.add('stale'); $('ga-stale').classList.add('on'); }
+    gaMarkBad(); gaSrc();
+  }
+  function renderStart() {
+    if (GA.ready) return;
+    const s = fcSetup();
+    s.batches.forEach((b, i) => $('ga-batch').add(new Option(`批次 ${b.code}（${b.pigs.length} 头）`, String(i))));
+    s.weeks.forEach((w, k) => $('ga-week').add(new Option(`第 ${w.start}–${w.end} 天${w.cutoff >= 1 ? '（第 ' + w.cutoff + ' 天前定）' : '（进栏前定）'}`, String(k))));
+    const d = s.weeks.findIndex((w) => w.start === 43);
+    GA.week = d < 0 ? 0 : d; $('ga-week').value = String(GA.week);
+    $('ga-margin').value = String(GA_MARGIN_AI);
+    $('ga-margin-hint').textContent = `回放（13 批）：不加余量，约 41% 的猪日会吃不够；加 ${GA_MARGIN_AI}%，约 10%，与三阶段同水平。`;
+    GA.ready = true;
+    try { gaLoadSample(0); gaRenderForm(); gaRun(); } catch (e) { $('ga-err').textContent = '暂不可算：' + (e && e.message ? e.message : String(e)); }
+  }
+  $('ga-batch').addEventListener('change', () => { gaLoadSample(Number($('ga-batch').value) || 0); gaRenderForm(); gaRun(); });
+  $('ga-week').addEventListener('change', () => { GA.week = Number($('ga-week').value) || 0; gaRenderForm(); gaRun(); });
+  $('ga-form').addEventListener('input', (ev) => {
+    const el = ev.target;
+    if (el.classList.contains('ga-in')) GA.vals[el.dataset.key] = el.value;
+    else if (el.id !== 'ga-margin') return;
+    gaStale();
+  });
+  $('ga-form').addEventListener('submit', (ev) => { ev.preventDefault(); gaRun(); });
+
   /* ---------------- 初始化 ---------------- */
   $('in-animal').dispatchEvent(new Event('change'));
-  setView('overview');
+  setView('start');
   window.addEventListener('resize', () => {
     if (state.view === 'history') drawChart();
     if (state.view === 'ai') renderAI();

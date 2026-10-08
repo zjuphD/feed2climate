@@ -6,6 +6,8 @@ Feed2Climate is a transparent decision-support tool for pig nutritionists. It fo
 
 **Run it (no installation):** open `dist/feed2climate-standalone.html` in a browser. It works offline. The evidence story page is `dist/feed2climate-story.html`.
 
+**Use it:** the tool opens on a three-step page. (1) Enter the weighings and weekly feed intake, or load a public example batch. (2) Click one button. (3) Read the forecast chart, the least-cost ration, and the comparison with three-phase feeding (weekly lysine plan against the step plan, and cumulative cost, nitrogen and modeled CO₂e). The other tabs hold the underlying checks.
+
 **Check it:**
 
 ```bash
@@ -30,7 +32,7 @@ node tools/replay-eval.js --json out.json   # 13-batch leave-one-batch-out repla
 
 
 把 100 头育肥猪的真实生长/采食记录变成一个**可优化的减排变量**：无监督聚类划分饲喂组 → 原料级线性规划求最优配方 → 成本–排放 Pareto 前沿 → “分层饲喂 vs 一刀切”的栏舍成本与模型化排放差异。
-首版包含下一周的体重与采食预测（用于定料，附不确定度）：已接入工具的“当前状态与营养检查”页，之后做条件情景比较。预测效果用历史回放验证，见 [docs/replay/README.md](docs/replay/README.md)（含“修正记录”）。范围见 [Feed2Climate-MVP-首版范围.md](Feed2Climate-MVP-首版范围.md)。
+首版包含下一周的体重与采食预测（用于定料，附不确定度）：已接入工具的“开始分析”页和“当前状态与营养检查”页，之后做条件情景比较。预测效果用历史回放验证，见 [docs/replay/README.md](docs/replay/README.md)（含“修正记录”）。范围见 [Feed2Climate-MVP-首版范围.md](Feed2Climate-MVP-首版范围.md)。
 
 ## 运行方式
 
@@ -67,7 +69,7 @@ node tools/prepare-records.js
 
 | 文件 | 作用 |
 |---|---|
-| [app/index.html](app/index.html) | 五页应用：总览（因果链图+AI 流水线）/ 状态与营养检查（含下一周定料预测）/ AI 方案设计 / A/B 对比 / 来源与验证 |
+| [app/index.html](app/index.html) | 工具界面：默认的“开始分析”引导页（输入→运行→结果），加五个进阶页：原理总览 / 状态与营养检查 / AI 方案设计 / A/B 对比 / 来源与验证 |
 | [app/engine.js](app/engine.js) | 确定性计算引擎（纯函数）：完整性检查 → 营养供需 → 配比搜索 → 成本与排放 |
 | [app/ai.js](app/ai.js) | AI 层（纯函数）：k-means 聚类分层、两阶段单纯形 LP、Pareto 前沿、情景比较；全种子化确定性 |
 | [app/forecast.js](app/forecast.js) | 预测层（纯函数）：企业版观测降级、群体规律拟合、三种预测（查表 / 外推 / AI 滤波）、回放用真值 |
@@ -83,9 +85,13 @@ node tools/prepare-records.js
 | [tools/verify-ai.js](tools/verify-ai.js) | AI 层核对（LP 求解器、随机可行配方对照、聚类确定性、情景比较、Pareto 前沿） |
 | [demo_sources/zenodo_6626445/](demo_sources/zenodo_6626445/SOURCE.md) | 原始数据、来源说明与结构检查 |
 
-## 五个页面
+## 页面
 
-0. **总览** — 回答“这为什么和气候有关、AI 在哪”：配方→营养/N 排泄→粪污→CH₄/N₂O/饲料碳足迹的因果链图，四步 AI 流水线，以及实时计算的“分层 vs 一刀切”结果速览。
+**开始分析（默认首页）** — 一条主线：① 填入称重（进栏及抽称）与每周耗料，或载入 13 个公开批次之一，并选择要定哪一周的料；② 点“生成下周方案”；③ 看结果：赖氨酸、净能和成本三个大数与配料；体重预测图（称重点、AI 估计、预测范围、同日龄标准体重，示例批次另标事后实际值）；最低成本配方（占比与每吨用量）；与三阶段换料的对比（每周赖氨酸浓度的台阶与曲线，以及从进栏到所选这一周的累计成本、氮排泄、模型化 CO₂e）；下一步清单。输入有范围校验，数字改动后旧结果置灰并提示重新生成。AI 预测之上加了安全余量（默认 14.5%，来自回放：此时营养不足猪日约 10%，与三阶段持平；不加余量约 41%）；净能取群体标准表，只让 AI 决定赖氨酸，与回放一致。用自己的数据时，群体规律取自 13 个公开批次，不是该场的历史。
+
+以下五页是进阶页。
+
+0. **原理总览** — 回答“这为什么和气候有关、AI 在哪”：配方→营养/N 排泄→粪污→CH₄/N₂O/饲料碳足迹的因果链图，四步 AI 流水线，以及实时计算的“分层 vs 一刀切”结果速览。
 1. **当前状态与营养检查** — 选择公开样例或手动录入体重/采食量（含统计时间窗）、当前配方 A 料比例、粪污情景与气候区；历史图仅描述截至所选日的记录；营养表显示 NE、SID 赖氨酸、CP 的供应/要求/差额与公式。另有“下一周定料预测”卡片：按批次与定料周选择，显示预测体重与采食（±1.96 倍标准差；回放中体重区间实际覆盖约 86%、采食约 95%）、所需营养密度与最低成本配方。
 2. **AI 方案设计** — 可调 k（2–5 组）、种子、约束口径（组均值+5% 边际 / 覆盖最严格个体）与成本↔排放权重滑块；输出聚类散点图、每组的原料级 LP 配方卡（含个体满足率）、一刀切对照卡、情景对比表与 11 点 Pareto 前沿图。保守口径无解时如实报告可达上限。
 3. **A/B 混合对比（单栏）** — 基础料 A 为前期配方（第 1 天群体营养密度）、B 为后期配方（第 51 天），都是国内玉米–豆粕 + 合成氨基酸的最低成本解。在 0–100% 配比网格中搜索满足全部营养约束的 A/B 混合配比，输出成本最优与排放最优候选；附 MCF 与原料价格 ±20% 敏感性、群体换算与粪污管理情景对比。
@@ -125,7 +131,8 @@ node tools/prepare-records.js
 - `node tools/verify-forecast.js`：19 项（决策时点、提前量、称重后不确定度下降等）全部通过。
 - `node tools/verify-formulation.js`：28 项（国内配方、理想比例、粪污 MCF、间接 N₂O、与 LP 求解器一致）全部通过。
 - 回放：`node tools/replay-eval.js`（13 批留一批、30 次重复）。理想比例修正后重跑，结果写入 `docs/replay/results-cn.json`（及两份豆粕情景文件）；修正前的结果保留在 `docs/replay/results-cn.pre-fix.json`，对照表见回放说明的“修正记录”。
-- 界面：工具五个页面与预测卡片在无头 Chrome 中逐页测试（计算、不可行提示、能量放松提示、敏感性表、13 批 × 10 个定料周的预测卡片），页面没有运行时异常。
+- 界面：“开始分析”页由 `node tools/ui-test-start.js` 在无头 Chrome 中逐项断言（31 项：默认结果、换批次与定料周、改数字后的提示、非法输入、安全余量、六个页签、无运行时异常）；其余页面与预测卡片另在无头 Chrome 中逐页测试（计算、不可行提示、能量放松提示、敏感性表、13 批 × 10 个定料周的预测卡片）。
+- 对比口径：`node tools/weekly-compare.js` 复现“开始分析”页的累计对比：13 批全程累计，本方案相对三阶段的赖氨酸供给 −3.0%、成本 −0.5%、氮排泄 −7.1%、CO₂e −1.3%（单次观测噪声、按预测的猪评估，方向和量级与回放平均一致，但不逐位相同）；单周快照里本方案更便宜的只有 59/130 个批次周，所以页面看累计。
 - 确定性：全部计算（含聚类随机性）种子化，相同输入逐位一致。
 - 未解决（待决定）：
   - 预测区间覆盖率：130 个留一批案例中，体重 95% 区间实际覆盖约 86%（采食约 95%）。界面已如实注明；要达到 95%，需要校准预测的不确定度（未做）。
