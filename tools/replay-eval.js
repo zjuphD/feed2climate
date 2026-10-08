@@ -11,11 +11,10 @@ const path = require('path');
 const ROOT = path.join(__dirname, '..');
 
 global.window = {};
-for (const f of ['parameters/feed2climate-parameters.js', 'parameters/feed2climate-china.js', 'records.js', 'engine.js', 'ai.js', 'forecast.js', 'formulation.js']) {
+for (const f of ['parameters/feed2climate-china.js', 'records.js', 'engine.js', 'ai.js', 'forecast.js', 'formulation.js']) {
   eval(fs.readFileSync(path.join(ROOT, 'app', f), 'utf8'));
 }
-const P = global.window.F2C_PARAMETERS;
-const E = global.window.F2C_ENGINE;
+const P = global.window.F2C_CHINA; // 营养要求与能量参数与配方同在国内参数文件中
 const AI = global.window.F2C_AI;
 const F = global.window.F2C_FORECAST;
 const C = global.window.F2C_CHINA;
@@ -25,7 +24,6 @@ const FM = global.window.F2C_FORMULATION;
 const argv = process.argv.slice(2);
 const arg = (name, def) => { const i = argv.indexOf('--' + name); return i >= 0 ? argv[i + 1] : def; };
 const REPS = Number(arg('reps', 30));
-const LEGACY = argv.includes('--legacy');       // 旧引擎：原参数文件（欧元、粗蛋白下限 120 g/kg、只约束赖氨酸）
 const SYSTEM = arg('system', 'slurry_nocrust');  // 粪污储存方式（IPCC 2019）
 const CLIMATE = arg('climate', 'warm_moist');
 const SBM = arg('sbm', 'mid');                   // 豆粕碳排放情景：low / mid / high（毁林）
@@ -70,8 +68,6 @@ const weeks = F.decisionWeeks(BATCH_OPTS);
 
 // ---------- 配方：按目标浓度求最低成本配方（NE 取 0.05、赖氨酸向上取 0.02 后缓存） ----------
 // 国内情景：玉米–豆粕 + 合成氨基酸、理想蛋白比例（formulation.js）；能量达不到时只放松能量。
-// --legacy：旧引擎（原参数文件），超出可达上限时等比例降到可行。
-const ceil = AI.maxAchievablePerKg(P);
 const dietCache = new Map();
 function dietFor(ne, lys) {
   const n0 = Math.round(ne / 0.05) * 0.05;
@@ -79,28 +75,17 @@ function dietFor(ne, lys) {
   const key0 = n0.toFixed(2) + '|' + l0.toFixed(2);
   if (dietCache.has(key0)) return dietCache.get(key0);
   let found = null;
-  if (!LEGACY) {
-    const r = FM.formulate(C, { ne: n0, lys: l0 }, { sbmScenario: SBM });
-    if (r.status === 'optimal') found = { lys: r.perKg.lys, ne: r.perKg.ne, cp: r.perKg.cp, nG: r.perKg.nG, price: r.perKg.price, co2e: r.perKg.co2e, sbm: r.recipe.sbm };
-  } else {
-    const nn = Math.min(n0, ceil.maxNE * 0.999), ll = Math.min(l0, ceil.maxLys * 0.999);
-    for (let s = 1; s > 0.5 && !found; s -= 0.005) {
-      const res = AI.dietLP(P, { neReqPerKg: nn * s, lysReqPerKg: ll * s, co2eWeight: 0 });
-      if (res.status === 'optimal') { const d = res.perKg; found = { lys: d.sidLys, ne: d.ne, cp: d.cp, nG: d.nG, price: d.price / 1000, co2e: d.feedCo2e, sbm: res.recipe.soybean_meal }; }
-    }
-  }
+  const r = FM.formulate(C, { ne: n0, lys: l0 }, { sbmScenario: SBM });
+  if (r.status === 'optimal') found = { lys: r.perKg.lys, ne: r.perKg.ne, cp: r.perKg.cp, nG: r.perKg.nG, price: r.perKg.price, co2e: r.perKg.co2e, sbm: r.recipe.sbm };
   if (!found) throw new Error('找不到可行配方: ' + ne + ' ' + lys);
   dietCache.set(key0, found);
   return found;
 }
 function emissions(d, x) {
-  if (!LEGACY) {
-    const a = FM.account(C, d, x, { system: SYSTEM, climate: CLIMATE });
-    return { total: a.total, feed: a.feed, n2o: a.n2oDirect + a.n2oIndirect, nEx: a.nExcreted };
-  }
-  const em = E.manureAndEmissions({ nG: d.nG, feedCo2e: d.co2e }, x.bw, x.fi, x.adg, P, 'slurry', 'temperate');
-  return { total: em.emissions.total, feed: em.emissions.feed, n2o: em.emissions.manureN2o, nEx: em.nExcreted };
+  const a = FM.account(C, d, x, { system: SYSTEM, climate: CLIMATE });
+  return { total: a.total, feed: a.feed, n2o: a.n2oDirect + a.n2oIndirect, nEx: a.nExcreted };
 }
+
 
 // ---------- 规格表：specs[policy][批 i][头 p][第 t 天 − 1] = { ne, lys }（未加余量） ----------
 const emptySpecs = () => batches.map((b) => b.pigs.map(() => new Array(LAST)));
@@ -248,7 +233,7 @@ const pct = (x, d) => (x * 100).toFixed(d == null ? 1 : d) + '%';
 const mae = (rows, k) => meanOf(rows.map((x) => Math.abs(x[k])));
 
 console.log('回放评估：13 批（100 头）× ' + REPS + ' 次重复，按批提前量 ' + BATCH_OPTS.leadDays + ' 天、称重日 ' + BATCH_OPTS.weighDays.join('/') + '，用时 ' + ((Date.now() - t0) / 1000).toFixed(0) + ' s');
-console.log('配方：' + (LEGACY ? '旧引擎（原参数文件）' : '国内玉米–豆粕 + 合成氨基酸（理想蛋白），粪污 ' + C.manure.systems[SYSTEM].name + '，' + C.manure.mcf[CLIMATE].name + '，豆粕碳排放情景 ' + SBM));
+console.log('配方：国内玉米–豆粕 + 合成氨基酸（理想蛋白），粪污 ' + C.manure.systems[SYSTEM].name + '，' + C.manure.mcf[CLIMATE].name + '，豆粕碳排放情景 ' + SBM);
 console.log('\n== 预测误差（目标日相对事后真值的平均绝对误差） ==');
 const errRows = [];
 for (const [id, rows] of [['P1', accBatch.P1], ['P2', accBatch.P2], ['P3', accBatch.P3], ['I2', accPig.I2], ['I3', accPig.I3]]) {
@@ -311,6 +296,6 @@ const jsonOut = arg('json', null);
 if (jsonOut) {
   const curves = {};
   for (const p of POLICIES) curves[p.id] = perRep[0][p.id].grid.map((m, k) => ({ m, deficit: meanOf(perRep.map((r) => r[p.id].curve[k].deficit)), excessLys: meanOf(perRep.map((r) => r[p.id].curve[k].excessLys)) }));
-  fs.writeFileSync(jsonOut, JSON.stringify({ generated: 'tools/replay-eval.js', reps: REPS, legacy: LEGACY, system: SYSTEM, climate: CLIMATE, sbmScenario: SBM, batchOpts: BATCH_OPTS, pigOpts: { leadDays: 0, weighCV: PIG_OPTS.weighCV }, policies: POLICIES, errors: errRows, decision, summary, verdicts, curves }, null, 1));
+  fs.writeFileSync(jsonOut, JSON.stringify({ generated: 'tools/replay-eval.js', reps: REPS, system: SYSTEM, climate: CLIMATE, sbmScenario: SBM, batchOpts: BATCH_OPTS, pigOpts: { leadDays: 0, weighCV: PIG_OPTS.weighCV }, policies: POLICIES, errors: errRows, decision, summary, verdicts, curves }, null, 1));
   console.log('\n写入 ' + jsonOut);
 }

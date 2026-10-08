@@ -12,9 +12,11 @@ const inline = (srcPath) => '<script>\n' + read(srcPath).trim() + '\n</script>';
 
 const replacements = [
   ['<script src="records.js"></script>', inline('app/records.js')],
-  ['<script src="parameters/feed2climate-parameters.js"></script>', inline('app/parameters/feed2climate-parameters.js')],
-  ['<script src="engine.js"></script>', inline('app/engine.js')],
+  ['<script src="parameters/feed2climate-china.js"></script>', inline('app/parameters/feed2climate-china.js')],
+  ['<script src="formulation.js"></script>', inline('app/formulation.js')],
   ['<script src="ai.js"></script>', inline('app/ai.js')],
+  ['<script src="forecast.js"></script>', inline('app/forecast.js')],
+  ['<script src="engine.js"></script>', inline('app/engine.js')],
 ];
 for (const [tag, replacement] of replacements) {
   if (!html.includes(tag)) throw new Error('未找到待替换的脚本标签: ' + tag);

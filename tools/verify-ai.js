@@ -7,11 +7,12 @@ const path = require('path');
 const ROOT = path.join(__dirname, '..');
 
 global.window = {};
-eval(fs.readFileSync(path.join(ROOT, 'app', 'parameters', 'feed2climate-parameters.js'), 'utf8'));
+eval(fs.readFileSync(path.join(ROOT, 'app', 'parameters', 'feed2climate-china.js'), 'utf8'));
 eval(fs.readFileSync(path.join(ROOT, 'app', 'records.js'), 'utf8'));
+eval(fs.readFileSync(path.join(ROOT, 'app', 'formulation.js'), 'utf8'));
 eval(fs.readFileSync(path.join(ROOT, 'app', 'engine.js'), 'utf8'));
 eval(fs.readFileSync(path.join(ROOT, 'app', 'ai.js'), 'utf8'));
-const P = global.window.F2C_PARAMETERS;
+const P = global.window.F2C_CHINA; // 国内参数（与工具一致）
 const E = global.window.F2C_ENGINE;
 const AI = global.window.F2C_AI;
 
@@ -58,65 +59,60 @@ console.log('== 0. LP 求解器基础（独立可验的小算例） ==');
   check('等式+上限：a=6,b=4 → 24', s8.status === 'optimal' && approx(s8.obj, 24, 1e-6), JSON.stringify(s8));
 }
 
-console.log('== 1. 配方 LP：约束满足与最优性（BW 99.5, ADG 0.9, FI 2.41） ==');
+console.log('== 1. 配方 LP（国内玉米–豆粕 + 合成氨基酸）：约束满足与最优性（BW 99.5, ADG 0.9, FI 2.41） ==');
 {
   const bw = 99.5, adg = 0.9, fi = 2.41;
+  const ING = P.ingredients;
+  const keys = Object.keys(ING);
   const res = AI.dietLP(P, { bw, adg, fi, co2eWeight: 0 });
   check('纯成本 LP 求解成功', res.status === 'optimal', res.status);
-  check('配比合计 = 1（±0.001）', approx(sum(Object.values(res.recipe)), 1, 1e-3), sum(Object.values(res.recipe)));
+  check('配比合计 = 1（±1e-6）', approx(sum(Object.values(res.recipe)), 1, 1e-6), sum(Object.values(res.recipe)));
   check('所有原料非负', Object.values(res.recipe).every((v) => v >= -1e-9));
+  check('合成氨基酸不超过配合上限（容差 1e-6）', keys.every((k) => ING[k].max == null || res.recipe[k] <= ING[k].max + 1e-6));
   const pk = res.perKg;
-  check('NE 满足（供应 ≥ 要求）', pk.ne * fi >= res.targets.neReq - 0.01, pk.ne * fi + ' vs ' + res.targets.neReq);
-  check('Lys 满足', pk.sidLys * fi >= res.targets.lysReq - 0.01, pk.sidLys * fi + ' vs ' + res.targets.lysReq);
-  check('CP 下限满足', pk.cp >= res.targets.cpFloor - 1e-6, pk.cp);
-  check('豆油 ≤5%、赖氨酸 ≤1%、预混料 ≤0.5%',
-    (res.recipe.soy_oil || 0) <= 0.05 + 1e-6 && (res.recipe.l_lysine_hcl || 0) <= 0.01 + 1e-6 && (res.recipe.premix || 0) <= 0.005 + 1e-6,
-    JSON.stringify(res.recipe));
+  check('NE 满足（未放松）', res.neRelaxed === false && pk.ne * fi >= res.targets.neReq - 0.01, pk.ne * fi + ' vs ' + res.targets.neReq);
+  check('SID 赖氨酸满足', pk.sidLys * fi >= res.targets.lysReq - 0.01, pk.sidLys * fi + ' vs ' + res.targets.lysReq);
+  check('成本 = 配方加权价格（元/吨 ÷ 1000 × 质量占比）', approx(pk.price, sum(keys.map((k) => ING[k].price * res.recipe[k])), 0.01), pk.price);
 
-  // 最优性对照 1：手工可行配方的成本 ≥ LP 最优值
-  const manual = { corn: 0.55, barley: 0.30, soybean_meal: 0.12, rapeseed_meal: 0.02, soy_oil: 0.005, l_lysine_hcl: 0.0025, premix: 0.0025 };
-  const manualCost = sum(Object.entries(manual).map(([k, v]) => (P.ingredients[k].price / 1000) * v));
-  const manualNE = sum(Object.entries(manual).map(([k, v]) => P.ingredients[k].ne * v)) * fi;
-  const manualLys = sum(Object.entries(manual).map(([k, v]) => P.ingredients[k].sidLys * v)) * fi;
-  const manualCP = sum(Object.entries(manual).map(([k, v]) => P.ingredients[k].cp * v));
-  const neReq = 0.777 * Math.pow(bw, 0.6) + 9.0 * adg;   // 20.38
-  const lysReq = 0.036 * Math.pow(bw, 0.75) + 20.0 * adg; // 19.13
-  check('手工配方确实可行（前置检查）', manualNE >= neReq && manualLys >= lysReq && manualCP >= 120,
-    JSON.stringify({ manualNE, neReq, manualLys, lysReq, manualCP }));
-  check('手工可行配方成本 ≥ LP 最优值', manualCost >= res.objectiveValue - 1e-6, manualCost + ' vs ' + res.objectiveValue);
-
-  // 最优性对照 2：随机可行点（拒绝采样）成本均 ≥ LP 最优值
+  // 最优性对照：随机可行配方（按同一约束定义）的成本均 ≥ LP 最优值
+  const neReqPerKg = res.targets.neReqPerKg, lysReqPerKg = res.targets.lysReqPerKg;
   const rand = AI.mulberry32(123);
   let worst = Infinity, found = 0;
-  for (let t = 0; t < 4000; t++) {
-    let x = [rand(), rand(), rand(), rand(), rand() * 0.05, rand() * 0.01, 0.0025];
-    const s = sum(x) || 1;
-    x = x.map((v) => v / s);
-    if (x[6] > 0.005) continue;
-    const ne = sum(x.map((v, j) => [P.ingredients.corn, P.ingredients.barley, P.ingredients.soybean_meal, P.ingredients.rapeseed_meal, P.ingredients.soy_oil, P.ingredients.l_lysine_hcl, P.ingredients.premix][j].ne * v));
-    const lys = sum(x.map((v, j) => [P.ingredients.corn, P.ingredients.barley, P.ingredients.soybean_meal, P.ingredients.rapeseed_meal, P.ingredients.soy_oil, P.ingredients.l_lysine_hcl, P.ingredients.premix][j].sidLys * v));
-    if (ne * fi < neReq || lys * fi < lysReq) continue;
+  for (let t = 0; t < 60000; t++) {
+    // 玉米、豆粕占大头；氨基酸在上限内随机取值
+    const x = keys.map((k) => (ING[k].max == null ? 0 : rand() * ING[k].max));
+    const big = rand() * 0.5 + 0.4;
+    x[keys.indexOf('corn')] = big * rand();
+    x[keys.indexOf('sbm')] = big * (1 - rand());
+    const sc = sum(x);
+    if (sc > 1) continue;
+    const rest = 1 - sc;
+    x[keys.indexOf('corn')] += rest;
+    const ne = sum(keys.map((k, j) => ING[k].ne * x[j]));
+    const lys = sum(keys.map((k, j) => (ING[k].sid.lys || 0) * x[j]));
+    if (ne < neReqPerKg || lys < lysReqPerKg) continue;
+    const ratioOK = ['thr', 'metcys', 'trp', 'val', 'ile'].every((aa) => sum(keys.map((k, j) => (ING[k].sid[aa] || 0) * x[j])) >= P.idealRatio[aa] * lys - 1e-9);
+    if (!ratioOK) continue;
     found++;
-    const cost = sum(x.map((v, j) => [P.ingredients.corn, P.ingredients.barley, P.ingredients.soybean_meal, P.ingredients.rapeseed_meal, P.ingredients.soy_oil, P.ingredients.l_lysine_hcl, P.ingredients.premix][j].price * v)) / 1000;
+    const cost = sum(keys.map((k, j) => ING[k].price * x[j])) / 1000;
     if (cost < worst) worst = cost;
   }
-  check('随机采样找到可行点（前置检查）', found > 100, found);
-  check('4000 个随机可行点成本均 ≥ LP 最优值', worst >= res.objectiveValue - 1e-6, worst + ' vs ' + res.objectiveValue);
+  check('随机采样找到足够多的可行配方（前置检查）', found > 30, found);
+  check('随机可行配方成本均 ≥ LP 最优值', worst >= pk.price / 1000 - 1e-6, worst + ' vs ' + pk.price / 1000);
 
   // 纯排放 LP 与加权单调性
   const resE = AI.dietLP(P, { bw, adg, fi, co2eWeight: 1 });
   check('纯排放 LP 求解成功', resE.status === 'optimal', resE.status);
-  check('纯排放解排放 ≤ 纯成本解排放', resE.perKg.feedCo2e <= res.perKg.feedCo2e + 1e-9, resE.perKg.feedCo2e + ' vs ' + res.perKg.feedCo2e);
+  check('纯排放解排放 ≤ 纯成本解排放', resE.perKg.feedCo2e <= pk.feedCo2e + 1e-9, resE.perKg.feedCo2e + ' vs ' + pk.feedCo2e);
   const resM = AI.dietLP(P, { bw, adg, fi, co2eWeight: 0.5 });
-  check('加权 0.5 的成本在两端点之间', resM.perKg.price / 1000 >= res.perKg.price / 1000 - 1e-6 && resM.perKg.price / 1000 <= resE.perKg.price / 1000 + 1e-6,
-    resM.perKg.price + ' vs [' + res.perKg.price + ', ' + resE.perKg.price + ']');
-  check('加权 0.5 的排放 ≤ 纯成本解排放', resM.perKg.feedCo2e <= res.perKg.feedCo2e + 1e-9, resM.perKg.feedCo2e + ' vs ' + res.perKg.feedCo2e);
+  check('加权 0.5 的成本在两端点之间', resM.perKg.price >= pk.price - 1e-6 && resM.perKg.price <= resE.perKg.price + 1e-6,
+    resM.perKg.price + ' vs [' + pk.price + ', ' + resE.perKg.price + ']');
+  check('加权 0.5 的排放 ≤ 纯成本解排放', resM.perKg.feedCo2e <= pk.feedCo2e + 1e-9, resM.perKg.feedCo2e + ' vs ' + pk.feedCo2e);
 
-  // 极端要求 → 不可行
+  // 极端要求：不再直接判不可行，而是如实放松能量（neRelaxed），并报告用量
   const bad = AI.dietLP(P, { bw: 200, adg: 1.1, fi: 0.5, co2eWeight: 0 });
-  check('极端要求检测为不可行', bad.status === 'infeasible', bad.status);
+  check('极端能量要求：如实放松能量（neRelaxed）', bad.status === 'optimal' && bad.neRelaxed === true && bad.perKg.ne < bad.targets.neReqPerKg, JSON.stringify({ status: bad.status, ne: bad.perKg && bad.perKg.ne }));
 }
-
 console.log('== 2. k-means 聚类确定性 ==');
 {
   // 合成数据：两团 + 一离群

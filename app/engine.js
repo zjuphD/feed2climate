@@ -1,8 +1,10 @@
-// Feed2Climate 首版计算引擎（无依赖，纯函数）。
-// 流程：完整性检查 → 营养供需检查 → A/B 配比网格搜索 → 成本与模型化排放核算。
+// Feed2Climate 工具计算引擎（国内情景，无依赖，纯函数）。
+// 流程：完整性检查 → 基础料 A/B（国内配方，见 formulation.js）→ 营养供需检查 → A/B 配比网格搜索 → 成本与排放核算（含间接 N2O）。
 // 输出仅声称“给定条件下的可行方案”与“模型化排放差异”。
 'use strict';
 window.F2C_ENGINE = (function () {
+  // 配方与排放核算模块在调用时再取，避免依赖脚本加载顺序
+  const FM = () => window.F2C_FORMULATION;
   const GRID_STEP = 0.01; // A 料配比网格 0–100%
 
   function r(x, d) { const p = Math.pow(10, d == null ? 3 : d); return Math.round(x * p) / p; }
@@ -16,41 +18,58 @@ window.F2C_ENGINE = (function () {
     if (!input.headCount || input.headCount < 1) missing.push({ field: '头数', reason: '群体核算需要完整栏舍头数' });
     if (!input.manureSystem) missing.push({ field: '粪污管理情景', reason: '需要选择液态储存等明确情景' });
     if (!input.climate) missing.push({ field: '气候区', reason: 'MCF 依气候区取值' });
-    if (input.currentRatioA == null || isNaN(input.currentRatioA)) missing.push({ field: '当前 A 料配比', reason: '需要输入现用配方中基础料 A 的比例' });
+    if (input.currentRatioA == null || isNaN(input.currentRatioA)) missing.push({ field: '当前基础料 A 比例', reason: '需要输入现用日粮中基础料 A 的比例' });
     if (!input.priceDate) missing.push({ field: '价格日期', reason: '饲料价格必须标注日期' });
     return { ok: missing.length === 0, missing };
   }
 
-  // ---------- 混合日粮属性（按配方质量占比加权原料） ----------
-  function blendDiets(ratioA, P) {
-    const Ing = P.ingredients;
-    const recipeKeys = Object.keys(P.diets.A.recipe);
+  // ---------- 基础料 A/B：按营养目标求得的最低成本配方与每 kg 饲料属性（按参数对象缓存） ----------
+  const baseCache = new WeakMap();
+  function baseDiets(C) {
+    if (baseCache.has(C)) return baseCache.get(C);
+    const out = {};
+    for (const key of ['A', 'B']) {
+      const t = C.phaseTargets[key];
+      const res = FM().formulate(C, { ne: t.ne, lys: t.lys }, {});
+      if (res.status !== 'optimal') throw new Error('基础料 ' + key + ' 在目标下无可行配方');
+      out[key] = {
+        key, name: t.name, day: t.day, target: { ne: t.ne, lys: t.lys },
+        recipe: res.recipe, perKg: res.perKg,
+        neRelaxed: res.neRelaxed, neUsed: res.neUsed, lysCapped: res.lysCapped,
+      };
+    }
+    baseCache.set(C, out);
+    return out;
+  }
+
+  // ---------- 混合日粮属性（配方与每 kg 饲料属性都是线性的，直接按比例混合） ----------
+  function blendDiets(ratioA, C) {
+    const B = baseDiets(C);
+    const a = B.A.perKg, b = B.B.perKg;
+    const mix = (k) => a[k] * ratioA + b[k] * (1 - ratioA);
     const recipe = {};
-    recipeKeys.forEach((k) => {
-      recipe[k] = P.diets.A.recipe[k] * ratioA + P.diets.B.recipe[k] * (1 - ratioA);
-    });
-    const mix = (sel) => recipeKeys.reduce((s, k) => s + recipe[k] * sel(Ing[k]), 0);
-    const cp = mix((i) => i.cp);
+    Object.keys(B.A.recipe).forEach((k) => { recipe[k] = B.A.recipe[k] * ratioA + B.B.recipe[k] * (1 - ratioA); });
+    const cp = mix('cp');
     return {
       ratioA: r(ratioA, 2),
       ratioB: r(1 - ratioA, 2),
-      recipe: recipeKeys.reduce((o, k) => { o[k] = r(recipe[k], 5); return o; }, {}),
-      ne: r(mix((i) => i.ne), 3),
-      sidLys: r(mix((i) => i.sidLys), 2),
-      cp: r(cp, 1),
-      nG: r(cp / 6.25, 2), // 蛋白质含氮 16% → N = CP/6.25
-      price: r(mix((i) => i.price), 2), // 欧元/吨（原料价加权）
-      feedCo2e: r(mix((i) => i.co2e), 4), // kg CO2e/kg 饲料（原料排放加权）
+      recipe: Object.keys(recipe).reduce((o, k) => { o[k] = r(recipe[k], 5); return o; }, {}),
+      ne: r(mix('ne'), 3),                  // MJ NE/kg 饲料
+      sidLys: r(mix('lys'), 2),             // g SID 赖氨酸/kg 饲料
+      cp: r(cp, 1),                         // g CP/kg 饲料
+      nG: r(cp / 6.25, 2),                  // 蛋白质含氮 16% → N = CP/6.25
+      price: r(mix('price') * 1000, 0),     // 元/吨（原料价加权）
+      feedCo2e: r(mix('co2e'), 4),          // kg CO2e/kg 饲料（原料排放加权）
     };
   }
 
   // ---------- 营养供需检查 ----------
-  // NE 要求 = 维持（0.777×BW^0.6，来自数据作者公式）+ 沉积（9.0 MJ/kg × 固定 ADG 假设）；
-  // SID 赖氨酸要求 = 维持（0.036×BW^0.75）+ 沉积（20 g/kg 增重 × ADG）。
-  function nutritionCheck(diet, bwKg, feedKgDay, P) {
-    const R = P.requirements;
-    const En = P.energy;
-    const adg = P.mechanism.adg_kg_day;
+  // NE 要求 = 维持（1.05 × 0.74 × BW^0.6，数据作者换算）+ 沉积（9.0 MJ/kg × 固定 ADG 假设）；
+  // SID 赖氨酸要求 = 维持（0.036 × BW^0.75）+ 沉积（20 g/kg 增重 × ADG）。
+  function nutritionCheck(diet, bwKg, feedKgDay, C) {
+    const R = C.requirements;
+    const En = C.energy;
+    const adg = C.mechanism.adg_kg_day;
     const neReq = En.maintenance_coefficient * En.maintenance_net_availability * Math.pow(bwKg, En.maintenance_exponent)
       + R.ne_gain_mj_per_kg * adg;
     const neSup = diet.ne * feedKgDay;
@@ -77,7 +96,7 @@ window.F2C_ENGINE = (function () {
         margin: r(diet.cp - cpMin, 0),
         pass: diet.cp >= cpMin,
         unit: 'g CP/kg 饲料',
-        formula: `防过度稀释的保障性下限 ${cpMin} g/kg`,
+        formula: `防过度稀释的保障性下限 ${cpMin} g/kg（只作检查，不作配方约束）`,
       },
     };
   }
@@ -85,12 +104,12 @@ window.F2C_ENGINE = (function () {
   // ---------- A/B 配比搜索 ----------
   // 在 [minA, maxA] 网格上找出全部满足营养约束的配比，按成本/排放排序。
   function searchFeasible(ctx) {
-    const { bwKg, feedKgDay, P, minA, maxA } = ctx;
+    const { bwKg, feedKgDay, C, minA, maxA } = ctx;
     const feasible = [];
     for (let a = minA; a <= maxA + 1e-9; a += GRID_STEP) {
       const ratioA = r(Math.min(a, 1), 2);
-      const diet = blendDiets(ratioA, P);
-      const check = nutritionCheck(diet, bwKg, feedKgDay, P);
+      const diet = blendDiets(ratioA, C);
+      const check = nutritionCheck(diet, bwKg, feedKgDay, C);
       const allPass = check.ne.pass && check.sidLys.pass && check.cp.pass;
       feasible.push({ ratioA, diet, check, allPass });
     }
@@ -109,58 +128,34 @@ window.F2C_ENGINE = (function () {
     };
   }
 
-  // ---------- 氮平衡与粪污排放 ----------
-  // 日尺度：N 摄入/保留/排泄 g/天；VS kg/天；CH4、N2O 及 kg CO2e/头/天。
-  function manureAndEmissions(diet, bwKg, feedKgDay, adgKgDay, P, manureSystem, climate) {
-    const M = P.manure;
-    const nIntake = diet.nG * feedKgDay;                       // g N/天
-    const nRetention = M.n_retention_g_per_kg_gain * adgKgDay; // g N/天
-    const nExcreted = Math.max(0, nIntake - nRetention);       // g N/天
-    const nUrine = nExcreted * M.urine_n_fraction_of_excreted;
-    const nFaeces = nExcreted - nUrine;
-
-    // IPCC Tier 2 结构（示范简化）：VS = 干物质采食 × (1 - 消化率) × VS 占粪比例
-    const dmIntake = feedKgDay * M.dry_matter_fraction; // 干物质含量（参数文件）
-    const vsKg = r(dmIntake * (1 - M.digestibility) * M.vs_ash_fraction, 4);
-
-    const mcf = manureSystem === 'lagoon' ? M.mcf_anaerobic_lagoon
-      : (climate === 'temperate' ? M.mcf_slurry_temperate : M.mcf_slurry_cool);
-    // EF = VS × B0 × 0.67 × MCF → kg CH4/天
-    const ch4KgDay = vsKg * M.b0_m3_ch4_per_kg_vs * 0.67 * mcf;
-    const ch4Co2e = ch4KgDay * M.ch4_gwp100_ar6;
-
-    // 直接 N2O：N 排泄 × EF3 × 44/28
-    const n2oN = nExcreted / 1000 * M.n2o_ef3_slurry_kg_n2o_n_per_kg_n; // kg N2O-N/天
-    const n2oKgDay = n2oN * M.fraction_n2o_n_to_n2o;
-    const n2oCo2e = n2oKgDay * M.n2o_gwp100_ar6;
-
-    const feedCo2eDay = diet.feedCo2e * feedKgDay;
-
+  // ---------- 氮平衡与粪污排放（IPCC 2019，含直接与间接 N2O；核算本身在 formulation.js 的 account） ----------
+  // 返回每头每天的 N（g/天）与排放（kg CO2e/头/天）。manureSystem 为 C.manure.systems 的键，climate 为 C.manure.mcf 的键。
+  function manureAndEmissions(diet, bwKg, feedKgDay, adgKgDay, C, manureSystem, climate) {
+    const a = FM().account(C, { nG: diet.nG, co2e: diet.feedCo2e }, { bw: bwKg, adg: adgKgDay, fi: feedKgDay }, { system: manureSystem, climate });
     return {
-      nIntake: r(nIntake, 1), nRetention: r(nRetention, 1), nExcreted: r(nExcreted, 1),
-      nUrine: r(nUrine, 1), nFaeces: r(nFaeces, 1), unit: 'g N/天',
-      vsKgDay: vsKg,
-      mcfUsed: mcf,
-      ch4KgDay: r(ch4KgDay, 4),
-      n2oKgDay: r(n2oKgDay, 5),
+      nIntake: r(a.nIntake, 1), nRetention: r(a.nRetained, 1), nExcreted: r(a.nExcreted, 1), unit: 'g N/天',
+      mcfUsed: a.mcf,
+      systemName: a.system,
       emissions: {
-        feed: r(feedCo2eDay, 3),
-        manureCh4: r(ch4Co2e, 3),
-        manureN2o: r(n2oCo2e, 3),
-        total: r(feedCo2eDay + ch4Co2e + n2oCo2e, 3),
+        feed: r(a.feed, 3),
+        manureCh4: r(a.ch4, 3),
+        manureN2o: r(a.n2oDirect + a.n2oIndirect, 3),
+        manureN2oDirect: r(a.n2oDirect, 3),
+        manureN2oIndirect: r(a.n2oIndirect, 3),
+        total: r(a.total, 3),
         unit: 'kg CO2e/头/天',
       },
     };
   }
 
   // ---------- 单方案完整评估 ----------
-  function evaluate(input, ratioA, P) {
-    const diet = blendDiets(ratioA, P);
-    const check = nutritionCheck(diet, input.weightKg, input.feedIntakeKgDay, P);
-    const adg = P.mechanism.adg_kg_day;
-    const em = manureAndEmissions(diet, input.weightKg, input.feedIntakeKgDay, adg, P, input.manureSystem, input.climate);
+  function evaluate(input, ratioA, C) {
+    const diet = blendDiets(ratioA, C);
+    const check = nutritionCheck(diet, input.weightKg, input.feedIntakeKgDay, C);
+    const adg = C.mechanism.adg_kg_day;
+    const em = manureAndEmissions(diet, input.weightKg, input.feedIntakeKgDay, adg, C, input.manureSystem, input.climate);
     const fi = input.feedKgDayForCost != null ? input.feedKgDayForCost : input.feedIntakeKgDay;
-    const costPerHeadDay = diet.price / 1000 * fi; // 欧元/头/天，按共同采食情景
+    const costPerHeadDay = diet.price / 1000 * fi; // 元/头/天，按共同采食情景
     return { ratioA, diet, check, adg, feedKgDayUsed: fi, costPerHeadDay: r(costPerHeadDay, 3), ...em };
   }
 
@@ -171,7 +166,7 @@ window.F2C_ENGINE = (function () {
       headCount: n,
       feedKgDay: r(ev.feedKgDayUsed * n, 1),
       feedTonnesDay: r(ev.feedKgDayUsed * n / 1000, 4),
-      costPerDay: r(ev.costPerHeadDay * n, 2), // €/天
+      costPerDay: r(ev.costPerHeadDay * n, 2), // 元/天
       nExcretedKgDay: r(ev.nExcreted / 1000 * n, 2),
       emissions: {
         feed: r(ev.emissions.feed * n, 2),
@@ -185,42 +180,43 @@ window.F2C_ENGINE = (function () {
   }
 
   // ---------- 主入口 ----------
-  function run(input, P) {
+  function run(input, C) {
     const completeness = checkCompleteness(input);
     if (!completeness.ok) return { status: 'incomplete', completeness };
 
     const minA = 0, maxA = 1; // 首版不额外限制混合比例；如有限制应来自用户显式录入
-    const search = searchFeasible({ bwKg: input.weightKg, feedKgDay: input.feedIntakeKgDay, P, minA, maxA });
+    const search = searchFeasible({ bwKg: input.weightKg, feedKgDay: input.feedIntakeKgDay, C, minA, maxA });
 
-    const current = evaluate(input, input.currentRatioA, P);
+    const current = evaluate(input, input.currentRatioA, C);
     const currentAllPass = current.check.ne.pass && current.check.sidLys.pass && current.check.cp.pass;
+    const bases = baseDiets(C);
 
     if (!search.feasible) {
       // 无可行方案：报告冲突，不输出“最优配方”
       const probes = [0, 0.5, 1].map((a) => {
-        const e = evaluate(input, a, P);
-        return { ratioA: a, nePass: e.check.ne.pass, lysPass: e.check.sidLys.pass, cpPass: e.check.cp.pass };
+        const e = evaluate(input, a, C);
+        return { ratioA: a, nePass: e.check.ne.pass, lysPass: e.check.sidLys.pass, cpPass: e.check.cp.pass, neSupply: e.check.ne.supply, neRequirement: e.check.ne.requirement };
       });
       return {
         status: 'infeasible',
-        current, currentAllPass, search,
+        current, currentAllPass, search, bases,
         conflict: {
           message: '在 0–100% 配比范围内未找到同时满足 NE、SID 赖氨酸与 CP 约束的配比。',
           probes,
-          advice: '请检查要求参数是否过严、采食量是否录入正确，或放宽使用约束。',
+          advice: '国内玉米–豆粕配方不含油脂，前期能量密度低于标准（见基础料说明）；能量不足时需加油脂或放宽能量要求，不能只靠调配比解决。',
         },
       };
     }
 
-    const candidates = search.candidates.map((c) => evaluate(input, c.ratioA, P));
+    const candidates = search.candidates.map((c) => evaluate(input, c.ratioA, C));
     return {
       status: 'ok',
-      current, currentAllPass,
+      current, currentAllPass, bases,
       search: { attempted: search.attempted, feasibleCount: search.count },
       candidates,
-      commonConditions: P.meta.common_basis,
+      commonConditions: C.meta.common_basis,
     };
   }
 
-  return { run, blendDiets, nutritionCheck, manureAndEmissions, evaluate, herdTotals, checkCompleteness };
+  return { run, baseDiets, blendDiets, nutritionCheck, manureAndEmissions, evaluate, herdTotals, checkCompleteness };
 })();

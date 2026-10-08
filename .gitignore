@@ -20,3 +20,6 @@ __pycache__/
 
 # Generated publish fragment (tools/build-story.js)
 dist/*.fragment.html
+
+# Local tool caches
+.wrangler/

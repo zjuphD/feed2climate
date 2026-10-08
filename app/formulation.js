@@ -1,5 +1,5 @@
 // Feed2Climate 国内情景：配方与排放核算（无依赖，纯函数；线性规划复用 ai.js 的单纯形求解器）。
-// 配方：玉米–豆粕 + 合成氨基酸，约束每 kg 饲料的 NE、SID 赖氨酸，以及按理想蛋白比例换算的苏、蛋+胱、色、缬、异亮；
+// 配方：玉米–豆粕 + 合成氨基酸，约束每 kg 饲料的 NE、SID 赖氨酸，以及按理想蛋白比例（相对实际 SID 赖氨酸）约束的苏、蛋+胱、色、缬、异亮；
 //       合成氨基酸有配合上限。目标：最低原料成本（可加碳排放权重）。能量目标达不到时只放松能量，不动氨基酸。
 // 核算：饲料碳排放 + 粪污 CH4 + 直接 N2O + 间接 N2O（挥发、淋失），参数见 parameters/feed2climate-china.js。
 'use strict';
@@ -29,7 +29,8 @@ window.F2C_FORMULATION = (function () {
     const cons = [{ a: new Array(n).fill(1), b: 1, type: '=' }];
     if (ne > 0) cons.push({ a: A.ne.map((v) => -v), b: -ne, type: '<=' });
     cons.push({ a: A.sid.lys.map((v) => -v), b: -lys, type: '<=' });
-    for (const aa of RATIO_AA) cons.push({ a: A.sid[aa].map((v) => -v), b: -C.idealRatio[aa] * lys, type: '<=' });
+    // 理想比例相对实际 SID 赖氨酸（齐次约束：sid_aa ≥ 比例 × sid_lys），不随目标赖氨酸变化
+    for (const aa of RATIO_AA) cons.push({ a: A.sid[aa].map((v, j) => -(v - C.idealRatio[aa] * A.sid.lys[j])), b: 0, type: '<=' });
     A.max.forEach((m, j) => { if (m != null) cons.push({ a: unit(n, j), b: m, type: '<=' }); });
     return cons;
   }
@@ -90,5 +91,16 @@ window.F2C_FORMULATION = (function () {
     };
   }
 
-  return { AA, RATIO_AA, arrays, constraints, formulate, account };
+  // 单项上限：在同一套配方约束下，能达到的最高赖氨酸（g/kg，NE 不设约束）与最高能量（MJ/kg，赖氨酸不设约束）
+  function ceilings(C, opts) {
+    const solveLP = window.F2C_AI.solveLP;
+    const A = arrays(C, opts || {});
+    const n = A.keys.length;
+    const zero = new Array(n).fill(0);
+    const feasible = (ne, lys) => solveLP(n, constraints(A, C, ne, lys), zero).status === 'optimal';
+    const highest = (ok, hi) => { let lo = 0; for (let k = 0; k < 40; k++) { const mid = (lo + hi) / 2; if (ok(mid)) lo = mid; else hi = mid; } return lo; };
+    return { maxLys: highest((l) => feasible(0, l), 40), maxNE: highest((e) => feasible(e, 0), 30) };
+  }
+
+  return { AA, RATIO_AA, arrays, constraints, perKgOf, formulate, account, ceilings };
 })();

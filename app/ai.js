@@ -239,89 +239,44 @@ window.F2C_AI = (function () {
   }
 
   /* ================= 4. 原料级配方 LP ================= */
-  // 原料配合上限（示范假设：防数值解跑飞，正式使用应按场内工艺调整）
-  const INCL_CAP = {
-    corn: 1, barley: 1, soybean_meal: 1, rapeseed_meal: 1,
-    soy_oil: 0.05, l_lysine_hcl: 0.01, premix: 0.005,
-  };
-  const INCL_CAP_NOTE = '配合上限为示范假设：豆油 ≤5%、L-赖氨酸盐酸盐 ≤1%、预混料 ≤0.5%，其余不设上限。';
-
-  function ingredientArrays(P) {
-    const keys = Object.keys(P.ingredients).filter((k) => typeof P.ingredients[k] === 'object');
-    const attr = (sel) => keys.map((k) => sel(P.ingredients[k]));
-    return {
-      keys,
-      ne: attr((i) => i.ne), lys: attr((i) => i.sidLys), cp: attr((i) => i.cp),
-      price: attr((i) => i.price), co2e: attr((i) => i.co2e),
-    };
-  }
-
-  function recipeFromX(keys, x) {
-    const recipe = {}; keys.forEach((k, j) => { recipe[k] = r(x[j], 5); });
-    return recipe;
-  }
-  function perKgFromX(A, x) {
-    const dot = (v) => v.reduce((s, vv, j) => s + vv * x[j], 0);
-    const perKg = {
-      ne: r(dot(A.ne), 3), sidLys: r(dot(A.lys), 2), cp: r(dot(A.cp), 1),
-      price: r(dot(A.price), 2), feedCo2e: r(dot(A.co2e), 4),
-    };
-    perKg.nG = r(perKg.cp / 6.25, 2);
-    return perKg;
-  }
-  function buildConstraints(P, A, neReqPerKg, lysReqPerKg, cpFloor) {
-    const n = A.keys.length;
-    const cons = [
-      { a: new Array(n).fill(1), b: 1, type: '=' },                    // 配比合计 = 1
-      { a: A.ne.map((v) => -v), b: -neReqPerKg, type: '<=' },          // NE ≥ 要求/采食
-      { a: A.lys.map((v) => -v), b: -lysReqPerKg, type: '<=' },        // SID 赖氨酸 ≥ 要求/采食
-      { a: A.cp.map((v) => -v), b: -cpFloor, type: '<=' },             // CP ≥ 下限
-    ];
-    A.keys.forEach((k, j) => { if (INCL_CAP[k] < 1) cons.push({ a: unit(n, j), b: INCL_CAP[k], type: '<=' }); });
-    return cons;
-  }
-  function unit(n, j) { const a = new Array(n).fill(0); a[j] = 1; return a; }
-
-  // 求解配方。要求可用两种方式给定：
-  //   a) bw/adg/fi → 内部换算成“每 kg 饲料要求”（要求/采食）；
-  //   b) 直接给 neReqPerKg / lysReqPerKg（分层情景用逐头最严格值）。
-  function dietLP(P, opts) {
+  // 国内情景配方（玉米–豆粕 + 合成氨基酸）由 formulation.js 求解：能量达不到时只放松能量，不动氨基酸约束。
+  // 要求可用两种方式给定：a) bw/adg/fi → 换成每 kg 饲料要求（要求/采食）；b) 直接给 neReqPerKg / lysReqPerKg。
+  const CAP_NOTE = '合成氨基酸配合上限为示范假设（见参数文件 synthetic_cap_note）；能量达不到时只放松能量（neRelaxed）。';
+  function dietLP(C, opts) {
     const w = opts.co2eWeight == null ? 0.5 : opts.co2eWeight;
-    const R = P.requirements, En = P.energy;
     let neReqPerKg, lysReqPerKg, targets;
     if (opts.neReqPerKg != null && opts.lysReqPerKg != null) {
       neReqPerKg = opts.neReqPerKg; lysReqPerKg = opts.lysReqPerKg;
-      targets = { neReqPerKg: r(neReqPerKg, 4), lysReqPerKg: r(lysReqPerKg, 4), cpFloor: R.cp_floor_g_per_kg };
+      targets = { neReqPerKg: r(neReqPerKg, 4), lysReqPerKg: r(lysReqPerKg, 4) };
     } else {
       const { bw, adg, fi } = opts;
+      const R = C.requirements, En = C.energy;
       const neReq = En.maintenance_coefficient * En.maintenance_net_availability * Math.pow(bw, En.maintenance_exponent) + R.ne_gain_mj_per_kg * adg;
       const lysReq = R.lys_maint_g_per_kg75 * Math.pow(bw, 0.75) + R.lys_gain_g_per_kg * adg;
       neReqPerKg = neReq / fi; lysReqPerKg = lysReq / fi;
-      targets = { bw, adg, fi, neReq: r(neReq, 2), lysReq: r(lysReq, 2), neReqPerKg: r(neReqPerKg, 4), lysReqPerKg: r(lysReqPerKg, 4), cpFloor: R.cp_floor_g_per_kg };
+      targets = { bw, adg, fi, neReq: r(neReq, 2), lysReq: r(lysReq, 2), neReqPerKg: r(neReqPerKg, 4), lysReqPerKg: r(lysReqPerKg, 4) };
     }
-    const A = ingredientArrays(P);
-    const cons = buildConstraints(P, A, neReqPerKg, lysReqPerKg, R.cp_floor_g_per_kg);
-    const cost = A.keys.map((_, j) => (A.price[j] / 1000) * (1 - w) + A.co2e[j] * w);
-    const sol = solveLP(A.keys.length, cons, cost);
-    if (sol.status !== 'optimal') return { status: sol.status, targets, w };
+    const res = window.F2C_FORMULATION.formulate(C, { ne: neReqPerKg, lys: lysReqPerKg }, { co2eWeight: w });
+    if (res.status !== 'optimal') return { status: res.status, targets, w };
+    const p = res.perKg;
     return {
       status: 'optimal',
-      recipe: recipeFromX(A.keys, sol.x),
-      perKg: perKgFromX(A, sol.x),
-      keys: A.keys, targets, w,
-      objectiveValue: r(sol.obj, 6),
-      capNote: INCL_CAP_NOTE,
+      recipe: res.recipe,
+      perKg: { ne: r(p.ne, 3), sidLys: r(p.lys, 2), cp: r(p.cp, 1), nG: r(p.nG, 2), price: r(p.price * 1000, 2), feedCo2e: r(p.co2e, 4) },
+      keys: Object.keys(res.recipe), targets, w,
+      neRelaxed: res.neRelaxed, neUsed: r(res.neUsed, 3), lysCapped: res.lysCapped,
+      capNote: CAP_NOTE,
     };
   }
 
   /* ================= 5. 成本-排放 Pareto 前沿 ================= */
   // 对权重 w∈[0,1] 求解 min (1−w)·成本 + w·排放 → 得到成本-排放平面上的非支配点集。
-  function paretoFront(P, opts) {
+  function paretoFront(C, opts) {
     const steps = (opts && opts.steps) || 11;
     const points = [];
     for (let s = 0; s <= steps; s++) {
       const w = s / steps;
-      const res = dietLP(P, { ...opts, co2eWeight: w });
+      const res = dietLP(C, { ...opts, co2eWeight: w });
       if (res.status !== 'optimal') { points.push({ w, status: res.status }); continue; }
       points.push({
         w, status: 'optimal',
@@ -345,38 +300,34 @@ window.F2C_AI = (function () {
   const clampADG = (x) => Math.min(ADG_CLAMP.max, Math.max(ADG_CLAMP.min, x));
 
   // 逐头“要求/采食”比（每头用自己的目标增重，夹值后）——两情景共用，保证生产假设一致。
-  function perPigRequirements(f, P) {
-    const En = P.energy, R = P.requirements;
+  function perPigRequirements(f, C) {
+    const En = C.energy, R = C.requirements;
     const adgT = clampADG(f.adg);
     const neReq = En.maintenance_coefficient * En.maintenance_net_availability * Math.pow(f.bw1, En.maintenance_exponent) + R.ne_gain_mj_per_kg * adgT;
     const lysReq = R.lys_maint_g_per_kg75 * Math.pow(f.bw1, 0.75) + R.lys_gain_g_per_kg * adgT;
     return { adgT, nePerFI: neReq / f.avgFI, lysPerFI: lysReq / f.avgFI };
   }
 
-  // 任意配比下每 kg 饲料可达的营养上限（用于无解时报告冲突边界）。
-  function maxAchievablePerKg(P) {
-    const A = ingredientArrays(P);
-    const n = A.keys.length;
-    const cons = buildConstraints(P, A, 0, 0, P.requirements.cp_floor_g_per_kg);
-    const neSol = solveLP(n, cons, A.ne.map((v) => -v));
-    const lysSol = solveLP(n, cons, A.lys.map((v) => -v));
-    return { maxNE: neSol.status === 'optimal' ? r(-neSol.obj, 3) : null, maxLys: lysSol.status === 'optimal' ? r(-lysSol.obj, 3) : null };
+  // 每 kg 饲料可达的营养上限（同一套配方约束下，用于无解时报告冲突边界）。
+  function maxAchievablePerKg(C) {
+    const c = window.F2C_FORMULATION.ceilings(C);
+    return { maxNE: r(c.maxNE, 3), maxLys: r(c.maxLys, 3) };
   }
 
   // 情景比较。requirementMode：
   //   'mean_margin'（默认）：按组/全群均值 + 安全边际（margin，默认 5%）求解 —— 行业常规口径；
   //   'strict'：覆盖组内/全群最严格个体 —— 最保守；若要求超出可达上限会如实报告无解。
   // 每种情景都报告“个体满足率”：该配方实际满足多少头猪自身的严格要求。
-  function scenarioCompare(records, cutoff, P, opts) {
+  function scenarioCompare(records, cutoff, C, opts) {
     const k = (opts && opts.k) || 3;
     const seed = (opts && opts.seed) != null ? opts.seed : 42;
     const co2eWeight = (opts && opts.co2eWeight) == null ? 0.5 : opts.co2eWeight;
     const requirementMode = (opts && opts.requirementMode) || 'mean_margin';
     const margin = (opts && opts.margin) != null ? opts.margin : 0.05;
-    const manureSystem = (opts && opts.manureSystem) || 'slurry';
-    const climate = (opts && opts.climate) || 'temperate';
+    const manureSystem = (opts && opts.manureSystem) || 'slurry_nocrust';
+    const climate = (opts && opts.climate) || 'warm_moist';
 
-    const feats = featureVectors(records, cutoff).map((f) => ({ ...f, ...perPigRequirements(f, P) }));
+    const feats = featureVectors(records, cutoff).map((f) => ({ ...f, ...perPigRequirements(f, C) }));
     const mat = standardize(clusteringMatrix(feats));
     const km = kmeans(mat.data, k, seed);
     const pigs = feats.map((f, i) => ({ ...f, cluster: km.assign[i] }));
@@ -403,12 +354,12 @@ window.F2C_AI = (function () {
     groups.forEach((g, i) => {
       g.name = '组 ' + (i + 1);
       const t = reqTarget(g.members);
-      g.lp = dietLP(P, { neReqPerKg: t.ne, lysReqPerKg: t.lys, co2eWeight });
+      g.lp = dietLP(C, { neReqPerKg: t.ne, lysReqPerKg: t.lys, co2eWeight });
     });
 
     // 一刀切 LP
     const uniformTarget = reqTarget(pigs);
-    const uniformLP = dietLP(P, { neReqPerKg: uniformTarget.ne, lysReqPerKg: uniformTarget.lys, co2eWeight });
+    const uniformLP = dietLP(C, { neReqPerKg: uniformTarget.ne, lysReqPerKg: uniformTarget.lys, co2eWeight });
 
     // 个体满足率：配方营养浓度 ≥ 该头自身的严格“要求/采食”比
     function satisfaction(perKg, list) {
@@ -421,7 +372,7 @@ window.F2C_AI = (function () {
     // 逐头核算（两情景：相同的体重/采食/目标增重，只有配方不同）
     function perHead(perKg, p) {
       const em = window.F2C_ENGINE.manureAndEmissions(
-        { nG: perKg.nG, feedCo2e: perKg.feedCo2e }, p.bw1, p.avgFI, p.adgT, P, manureSystem, climate
+        { nG: perKg.nG, feedCo2e: perKg.feedCo2e }, p.bw1, p.avgFI, p.adgT, C, manureSystem, climate
       );
       return {
         cost: (perKg.price / 1000) * p.avgFI,
@@ -449,7 +400,7 @@ window.F2C_AI = (function () {
       nExcretedKgDay: r(groupedTotals.nExcretedKgDay - uniformTotals.nExcretedKgDay, 2),
     } : null;
 
-    const ceilings = maxAchievablePerKg(P);
+    const ceilings = maxAchievablePerKg(C);
     const modeNote = requirementMode === 'strict'
       ? '约束口径：覆盖组内/全群最严格个体（保守）'
       : '约束口径：组/全群均值 + ' + Math.round(margin * 100) + '% 安全边际（行业常规做法）';
@@ -467,8 +418,8 @@ window.F2C_AI = (function () {
         mode: modeNote,
         satisfactionDef: '个体满足率 = 配方营养浓度 ≥ 该头严格“要求/采食”比的猪占比',
         compareBasis: '两情景每头猪使用相同的体重、采食量与目标增重，差异只来自配方',
-        emissionNote: '栏舍排放 = 饲料生产 + 粪污 CH₄ + 粪污 N₂O（直接），情景：' + (manureSystem === 'slurry' ? '液态储存' : '厌氧塘') + '/' + (climate === 'temperate' ? '温带' : '凉爽'),
-        capNote: INCL_CAP_NOTE,
+        emissionNote: '栏舍排放 = 饲料生产 + 粪污 CH₄ + 粪污 N₂O（直接），情景：' + C.manure.systems[manureSystem].name + '/' + C.manure.mcf[climate].name,
+        capNote: CAP_NOTE,
       },
       pigs: pigs.map((p) => ({
         id: p.id, pen: p.pen, cluster: p.cluster,
@@ -493,5 +444,5 @@ window.F2C_AI = (function () {
     };
   }
 
-  return { mulberry32, featureVectors, clusteringMatrix, standardize, kmeans, solveLP, dietLP, paretoFront, scenarioCompare, maxAchievablePerKg, INCL_CAP, INCL_CAP_NOTE, ADG_CLAMP, perPigRequirements };
+  return { mulberry32, featureVectors, clusteringMatrix, standardize, kmeans, solveLP, dietLP, paretoFront, scenarioCompare, maxAchievablePerKg, CAP_NOTE, ADG_CLAMP, perPigRequirements };
 })();

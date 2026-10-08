@@ -6,10 +6,10 @@ const path = require('path');
 const ROOT = path.join(__dirname, '..');
 
 global.window = {};
-for (const f of ['parameters/feed2climate-parameters.js', 'records.js', 'engine.js', 'ai.js', 'forecast.js']) {
+for (const f of ['parameters/feed2climate-china.js', 'records.js', 'formulation.js', 'engine.js', 'ai.js', 'forecast.js']) {
   eval(fs.readFileSync(path.join(ROOT, 'app', f), 'utf8'));
 }
-const P = global.window.F2C_PARAMETERS;
+const P = global.window.F2C_CHINA; // 国内参数（预测层的能量与营养要求）
 const F = global.window.F2C_FORECAST;
 const AI = global.window.F2C_AI;
 

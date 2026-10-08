@@ -6,7 +6,7 @@ const path = require('path');
 const ROOT = path.join(__dirname, '..');
 
 global.window = {};
-for (const f of ['parameters/feed2climate-parameters.js', 'parameters/feed2climate-china.js', 'ai.js', 'formulation.js']) {
+for (const f of ['parameters/feed2climate-china.js', 'ai.js', 'formulation.js']) {
   eval(fs.readFileSync(path.join(ROOT, 'app', f), 'utf8'));
 }
 const C = global.window.F2C_CHINA;
@@ -37,7 +37,7 @@ for (const [ne, lys] of targets) {
   const d = r.perKg;
   const sum = Object.values(r.recipe).reduce((s, v) => s + v, 0);
   const capsOk = Object.keys(r.recipe).every((k) => C.ingredients[k].max == null || r.recipe[k] <= C.ingredients[k].max + TOL);
-  const ratiosOk = FM.RATIO_AA.every((aa) => d[aa] >= C.idealRatio[aa] * lys - 1e-6);
+  const ratiosOk = FM.RATIO_AA.every((aa) => d[aa] >= C.idealRatio[aa] * d.lys - 1e-6); // 理想比例相对实际赖氨酸
   check(`NE ${ne} / 赖 ${lys}：配比合计 1、赖氨酸达标、理想比例达标、合成氨基酸不超上限、能量达标`,
     r.status === 'optimal' && approx(sum, 1, 1e-6) && d.lys >= lys - 1e-6 && ratiosOk && capsOk && d.ne >= ne - 1e-6 && !r.neRelaxed,
     JSON.stringify({ sum, lys: d.lys, ne: d.ne, ratiosOk, capsOk }));
@@ -59,7 +59,7 @@ console.log('== 2. 确是最低成本（对照 20000 个随机可行配方） ==
     const x = A.keys.map((key, j) => (key === 'sbm' ? sbm : key === 'corn' ? 1 - sbm - synSum : syn[j]));
     if (x.some((v) => v < 0)) continue;
     const dot = (v) => v.reduce((s, vv, j) => s + vv * x[j], 0);
-    const ok = dot(A.ne) >= ne && dot(A.sid.lys) >= lys && FM.RATIO_AA.every((aa) => dot(A.sid[aa]) >= C.idealRatio[aa] * lys);
+    const ok = dot(A.ne) >= ne && dot(A.sid.lys) >= lys && FM.RATIO_AA.every((aa) => dot(A.sid[aa]) >= C.idealRatio[aa] * dot(A.sid.lys));
     if (!ok) continue;
     feasible++;
     if (dot(A.price) / 1000 < best.perKg.price - 1e-9) cheaper++;
@@ -72,7 +72,7 @@ console.log('== 3. 超出上限时的处理 ==');
 {
   const r = FM.formulate(C, { ne: 9.0, lys: 30 });
   check('赖氨酸目标超出可达上限 → 按上限配并标记', r.status === 'optimal' && r.lysCapped && r.perKg.lys < 30 && r.perKg.lys > 20, JSON.stringify({ capped: r.lysCapped, lys: r.perKg.lys }));
-  check('按上限配时理想比例仍满足', FM.RATIO_AA.every((aa) => r.perKg[aa] >= C.idealRatio[aa] * r.lysUsed - 1e-6));
+  check('按上限配时理想比例仍满足（相对实际赖氨酸）', FM.RATIO_AA.every((aa) => r.perKg[aa] >= C.idealRatio[aa] * r.perKg.lys - 1e-6));
   const e = FM.formulate(C, { ne: 12.5, lys: 10 });
   check('能量目标达不到 → 只放松能量，赖氨酸照常达标', e.status === 'optimal' && e.neRelaxed && e.neUsed < 12.5 && e.perKg.lys >= 10 - 1e-6, JSON.stringify({ relaxed: e.neRelaxed, ne: e.neUsed, lys: e.perKg.lys }));
 }

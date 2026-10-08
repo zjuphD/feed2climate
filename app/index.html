@@ -169,7 +169,7 @@ input[type="range"] { width: 100%; }
           <div class="claim"><div class="t">数据是真的</div><div class="v">100 头猪 × 76 天个体记录<small>Zenodo 6626445 · CC BY 4.0 · MD5 校验一致 · 可复现</small></div></div>
           <div class="claim"><div class="t">AI 在哪</div><div class="v">聚类分层 + 线性规划 + Pareto 前沿<small>无监督学习划分饲喂组；单纯形法逐原料求解配方；131 项断言核对</small></div></div>
           <div class="claim"><div class="t">排放怎么算</div><div class="v">饲料生产 + 粪污 CH₄ + 粪污 N₂O<small>IPCC 2019 公式结构 · AR6 GWP · 每个系数标注来源</small></div></div>
-          <div class="claim"><div class="t">诚实边界</div><div class="v">不做生长预测，未核算项不计零<small>比较基于相同生产假设；无解时报告冲突约束</small></div></div>
+          <div class="claim"><div class="t">诚实边界</div><div class="v">预测只用于下一周定料（附不确定度），不预测料肉比；未核算项不计零<small>比较基于相同生产假设；无解时报告冲突约束</small></div></div>
         </div>
       </div>
 
@@ -333,14 +333,16 @@ input[type="range"] { width: 100%; }
         <div class="grid grid-3" style="margin-top:12px;">
           <label class="field">粪污管理情景
             <select id="in-manure">
-              <option value="slurry">液态储存（slurry）</option>
-              <option value="lagoon">厌氧塘（lagoon）</option>
+              <option value="slurry_nocrust">液态储存（无自然结壳）</option>
+              <option value="slurry_crust">液态储存（有自然结壳）</option>
+              <option value="pit">舍下粪坑</option>
+              <option value="lagoon">厌氧塘（无覆盖）</option>
             </select>
           </label>
           <label class="field">气候区（MCF 取值）
             <select id="in-climate">
-              <option value="temperate">温带</option>
-              <option value="cool">凉爽</option>
+              <option value="warm_moist">温暖湿润</option>
+              <option value="cool_moist">凉爽湿润</option>
             </select>
           </label>
           <label class="field">饲料价格日期
@@ -376,6 +378,23 @@ input[type="range"] { width: 100%; }
           <span class="panel-sub">要求曲线与日粮组成见“来源与验证”；满足约束不代表实际换料后生产表现不变</span>
         </div>
         <div id="nutrition-results"></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <h2 class="panel-title">下一周定料预测（AI）</h2>
+          <span class="panel-sub">回放：群体规律取自其余批次（留出本批），本批只用定料当天可见的数据</span>
+        </div>
+        <div class="grid grid-2">
+          <label class="field">批次
+            <select id="fc-batch"></select>
+          </label>
+          <label class="field">定料周
+            <select id="fc-week"></select>
+          </label>
+        </div>
+        <div id="fc-result" style="margin-top:12px;"></div>
+        <div class="footnote">预测只用于下一周定料（提前 3 天决定），不预测料肉比；区间为 ±1.96 倍标准差。回放（130 个留一批案例）中，体重区间实际覆盖约 86%，采食约 95%，所以体重区间偏窄，不能当作 95% 保证；回放验证见“04 来源与验证”页。</div>
       </div>
 
       <div class="actions">
@@ -529,6 +548,22 @@ input[type="range"] { width: 100%; }
       </div>
       <div class="panel">
         <div class="panel-head">
+          <h2 class="panel-title">预测误差（回放）</h2>
+          <span class="panel-sub">13 批留一批 × 30 次观测噪声；目标日相对事后真值的平均绝对误差</span>
+        </div>
+        <table>
+          <thead><tr><th>做法</th><th class="num">体重</th><th class="num">日增重</th><th class="num">采食</th><th class="num">赖氨酸浓度</th></tr></thead>
+          <tbody>
+            <tr><td>按批：按日龄查表</td><td class="num">5.3%</td><td class="num">7.5%</td><td class="num">6.6%</td><td class="num">7.0%</td></tr>
+            <tr><td>按批：AI 预测</td><td class="num">2.2%</td><td class="num">8.7%</td><td class="num">7.1%</td><td class="num">7.1%</td></tr>
+            <tr><td>逐头：滚动估计</td><td class="num">1.2%</td><td class="num">11.1%</td><td class="num">8.1%</td><td class="num">12.5%</td></tr>
+            <tr><td>逐头：AI 预测</td><td class="num">1.1%</td><td class="num">10.3%</td><td class="num">6.9%</td><td class="num">9.3%</td></tr>
+          </tbody>
+        </table>
+        <div class="footnote">预测区间的实测覆盖（130 个留一批案例）：体重 95% 区间实际覆盖约 86%，采食约 95%。体重区间偏窄，界面不能把它当作 95% 保证。</div>
+      </div>
+      <div class="panel">
+        <div class="panel-head">
           <h2 class="panel-title">验证清单</h2>
           <span class="panel-sub">已完成的核对与未完成的验证</span>
         </div>
@@ -540,13 +575,15 @@ input[type="range"] { width: 100%; }
 </div>
 
 <script src="records.js"></script>
-<script src="parameters/feed2climate-parameters.js"></script>
-<script src="engine.js"></script>
+<script src="parameters/feed2climate-china.js"></script>
+<script src="formulation.js"></script>
 <script src="ai.js"></script>
+<script src="forecast.js"></script>
+<script src="engine.js"></script>
 <script>
 (() => {
   'use strict';
-  const P = window.F2C_PARAMETERS;
+  const P = window.F2C_CHINA;
   const E = window.F2C_ENGINE;
   const AI = window.F2C_AI;
   const $ = (id) => document.getElementById(id);
@@ -563,6 +600,7 @@ input[type="range"] { width: 100%; }
     if (view === 'compare') renderCompare();
     if (view === 'evidence') renderEvidence();
     if (view === 'ai') renderAI();
+    if (view === 'history') renderForecast();
     window.scrollTo(0, 0);
   }
   document.querySelectorAll('.tab').forEach((t) => t.addEventListener('click', () => setView(t.dataset.view)));
@@ -583,12 +621,12 @@ input[type="range"] { width: 100%; }
     const perHead = sc.delta.emissionsPerDay / 100;
     const perHeadCost = sc.delta.costPerDay / 100;
     box.innerHTML = [
-      { t: '分层 vs 一刀切 · 成本', v: (sc.delta.costPerDay > 0 ? '+' : '') + sc.delta.costPerDay + ' €/天（栏舍 100 头）', s: '每头每天约 ' + (perHeadCost > 0 ? '+' : '') + perHeadCost.toFixed(4) + ' €；口径见 02 页' },
+      { t: '分层 vs 一刀切 · 成本', v: (sc.delta.costPerDay > 0 ? '+' : '') + sc.delta.costPerDay + ' 元/天（栏舍 100 头）', s: '每头每天约 ' + (perHeadCost > 0 ? '+' : '') + perHeadCost.toFixed(4) + ' 元；口径见 02 页' },
       { t: '分层 vs 一刀切 · 模型化排放', v: (sc.delta.emissionsPerDay > 0 ? '+' : '') + sc.delta.emissionsPerDay + ' kg CO₂e/天', s: '每头每天约 ' + (perHead > 0 ? '+' : '') + perHead.toFixed(4) + ' kg；饲料+粪污 CH₄+N₂O' },
       { t: '一刀切配方的代价', v: '约束按全群最严格个体定浓度', s: '组内个体差异被“平均掉”，也放弃了低需求组的节料空间' },
       { t: 'Pareto 前沿', v: '11 个 LP 最优点连成曲线', s: '量化“减排—成本”的边际替换率，见 02 页第 ④ 节' },
     ].map((c) => `<div class="claim"><div class="t">${c.t}</div><div class="v">${c.v}<small>${c.s}</small></div></div>`).join('');
-    $('ov-note').textContent = '以上为示范参数下的模型化结果：要求曲线、原料价格与排放系数均为示范值（见“04 来源与验证”）；未核算项（间接 N₂O、农场能耗、运输等）不计零，不合成完整碳足迹。';
+    $('ov-note').textContent = '以上为国内玉米–豆粕情景的模型化结果：要求曲线取显式参数，原料价格与排放系数标注了来源（见“04 来源与验证”，部分待营养师确认）；未核算项（农场能耗、运输等）不计零，不合成完整碳足迹。';
   }
 
   /* ---------------- 01 历史图 ---------------- */
@@ -665,9 +703,93 @@ input[type="range"] { width: 100%; }
         return `<tr><td>${row.label}</td><td class="num">${d.supply}</td><td class="num">${d.requirement}</td><td class="num">${d.margin > 0 ? '+' : ''}${d.margin}</td><td class="${d.pass ? 'pass' : 'fail'}">${d.pass ? '满足' : '不足'}</td></tr>`;
       }).join('')
       + `</tbody></table>
-      <div class="footnote">单位：${c.check.ne.unit}；${c.check.sidLys.unit}；${c.check.cp.unit}。供应 = 混合日粮含量 × 录入采食量；要求 = 示范要求曲线（显式参数，见来源页）。<br>公式：NE ${c.check.ne.formula}；SID 赖氨酸 ${c.check.sidLys.formula}；CP ${c.check.cp.formula}。</div>
+      <div class="footnote">单位：${c.check.ne.unit}；${c.check.sidLys.unit}；${c.check.cp.unit}。供应 = 混合日粮含量 × 录入采食量；要求 = 显式要求曲线（参数见来源页）。<br>公式：NE ${c.check.ne.formula}；SID 赖氨酸 ${c.check.sidLys.formula}；CP ${c.check.cp.formula}。</div>
       ${result.currentAllPass ? '<div class="notice info">当前配方满足全部已定义约束。</div>' : '<div class="notice bad">当前配方存在不满足的约束：候选方案将在满足全部约束的配比中产生。</div>'}`;
   }
+
+  /* ---------------- 01 下一周定料预测（AI，回放） ---------------- */
+  // 留一批回放：群体规律（采食曲线、增重/采食比、批间方差）由其余批次拟合，本批只用定料当天可见的称重与耗料。
+  // 批次观测与群体拟合惰性计算一次；卡片按（批次，定料周）缓存；计算错误在卡片内以提示显示，不抛出。
+  let fcS = null;
+  function fcSetup() {
+    if (fcS) return fcS;
+    const F = window.F2C_FORECAST;
+    const opts = { leadDays: F.DEFAULTS.leadDays, weighDays: F.DEFAULTS.weighDays };
+    const batches = F.groupBatches(window.F2C_RECORDS, F.DEFAULTS.lastDay);
+    fcS = { F, opts, batches, weeks: F.decisionWeeks(opts), obsAll: null, pops: {}, truths: {}, html: {} };
+    return fcS;
+  }
+  function fcFillOptions(s) {
+    if ($('fc-batch').options.length) return;
+    s.batches.forEach((b, i) => $('fc-batch').add(new Option(`批次 ${b.code}（${b.pigs.length} 头）`, String(i))));
+    s.weeks.forEach((w, k) => $('fc-week').add(new Option(`第 ${w.start}–${w.end} 天定料 · 预测第 ${w.target} 天`, String(k))));
+    const d = s.weeks.findIndex((w) => w.start === 43);
+    $('fc-week').value = String(d < 0 ? 0 : d);
+  }
+  function fcCard(s, i, k) {
+    const { F, opts } = s;
+    const b = s.batches[i], wk = s.weeks[k], T = wk.target, Z = 1.96;
+    if (!s.obsAll) s.obsAll = s.batches.map((bb) => F.observeBatch(bb, opts, F.obsSeed(0, bb.code)));
+    if (!s.pops[i]) s.pops[i] = F.fitPopulation(s.obsAll.filter((_, j) => j !== i), P, opts);
+    const f = F.aiForecast(s.obsAll[i], s.pops[i], P, wk.cutoff, T, opts);
+    if (!f) throw new Error('该定料周没有预测结果');
+    const d = F.requirementDensity(f.bw, f.adg, f.fi, P);
+    if (![f.bw, f.fi, f.adg, f.sdBw, f.sdFi, f.sdLys, d.ne, d.lys].every(Number.isFinite)) throw new Error('预测结果含无效数值');
+    const lp = AI.dietLP(P, { neReqPerKg: d.ne, lysReqPerKg: d.lys, co2eWeight: 0 });
+    if (!s.truths[i]) s.truths[i] = F.truthBatch(b, P);
+    const tr = s.truths[i].days[T - 1];
+    const f2 = (x, n) => Number(x).toFixed(n);
+    const dif = (a, c, n) => (a - c >= 0 ? '+' : '') + (a - c).toFixed(n);
+
+    let recipeHtml;
+    if (lp.status !== 'optimal') {
+      recipeHtml = `<div class="notice bad">该定料周无可行配方（求解状态 ${lp.status}）：营养要求超出这些原料的可达范围。</div>`;
+    } else {
+      const rec = lp.keys.map((key) => [key, lp.recipe[key] || 0]).filter((e) => e[1] > 1e-6).sort((x, y) => y[1] - x[1]);
+      const top = rec.length ? rec[0][1] : 1;
+      const bars = rec.map(([key, v]) => `<div class="bar-row"><span class="nm" style="width:11em;">${(P.ingredients[key] && P.ingredients[key].name) || key}</span><span class="bar" style="width:${Math.max(2, v / top * 100).toFixed(0)}px"></span><span class="pc">${(v * 100).toFixed(2)}%</span></div>`).join('');
+      recipeHtml = relaxNote(lp)
+        + (lp.lysCapped ? '<div class="notice bad" style="margin:8px 0;">赖氨酸未达标：要求超过这些原料的可达上限，配方按上限配制。</div>' : '')
+        + bars
+        + `<div class="kv"><span><span class="k">价格 </span>${lp.perKg.price} 元/吨</span><span><span class="k">配方 NE </span>${lp.perKg.ne} MJ/kg</span><span><span class="k">配方 SID 赖氨酸 </span>${lp.perKg.sidLys} g/kg</span><span><span class="k">CP </span>${lp.perKg.cp} g/kg</span></div>`;
+    }
+    return `<div class="gcard">
+      <h3>批次 ${b.code} · 第 ${wk.start}–${wk.end} 天定料 · 预测第 ${T} 天</h3>
+      <div class="snap" style="margin:8px 0 0;">
+        <div class="snap-item"><div class="k">预测体重（第 ${T} 天）</div><div class="v">${f2(f.bw, 1)} <small>kg ± ${f2(Z * f.sdBw, 1)}</small></div></div>
+        <div class="snap-item"><div class="k">预测采食（日均）</div><div class="v">${f2(f.fi, 2)} <small>kg/天 ± ${f2(Z * f.sdFi, 2)}</small></div></div>
+      </div>
+      <div class="footnote" style="margin-top:10px;">下一周需要的营养密度（每 kg 饲料）：NE 为点估计（无区间），赖氨酸区间为 ±1.96 倍标准差（未单独校准）。</div>
+      <div class="snap" style="margin:4px 0 0;">
+        <div class="snap-item"><div class="k">净能 NE（点估计）</div><div class="v">${f2(d.ne, 2)} <small>MJ/kg</small></div></div>
+        <div class="snap-item"><div class="k">SID 赖氨酸</div><div class="v">${f2(d.lys, 2)} <small>g/kg ± ${f2(Z * f.sdLys, 2)}</small></div></div>
+      </div>
+      <div class="footnote">预测日增重 ${f2(f.adg, 2)} kg/天；每 kg 饲料的要求 = （维持 + 增重需要）÷ 预测采食。</div>
+      <div style="margin-top:10px;font-weight:500;">最低成本配方（满足上述 NE 与赖氨酸密度）</div>
+      ${recipeHtml}
+      <div class="footnote" style="margin-top:12px;">事后对照（历史记录，仅供核对，不是预测）：第 ${T} 天的历史值由该批次全程逐头数据回顾性平滑得到，定料时不可得；偏差 = 预测 − 历史值。</div>
+      <div style="border:1px solid var(--border);border-radius:8px;overflow:hidden;font-size:13px;">
+        <div class="vs-head"><div>项目</div><div style="text-align:right;">预测</div><div style="text-align:right;">历史值</div><div style="text-align:right;">偏差</div></div>
+        <div class="vs-row"><div>体重 kg</div><div>${f2(f.bw, 1)}</div><div>${f2(tr.bw, 1)}</div><div>${dif(f.bw, tr.bw, 1)}</div></div>
+        <div class="vs-row"><div>采食 kg/天</div><div>${f2(f.fi, 2)}</div><div>${f2(tr.fi, 2)}</div><div>${dif(f.fi, tr.fi, 2)}</div></div>
+      </div>
+    </div>`;
+  }
+  function renderForecast() {
+    const box = $('fc-result');
+    try {
+      const s = fcSetup();
+      fcFillOptions(s);
+      const i = Number($('fc-batch').value) || 0, k = Number($('fc-week').value) || 0;
+      const key = i + ':' + k;
+      if (!s.html[key]) s.html[key] = fcCard(s, i, k);
+      box.innerHTML = s.html[key];
+    } catch (e) {
+      box.innerHTML = '<div class="notice bad">预测暂不可算：' + (e && e.message ? e.message : String(e)) + '</div>';
+    }
+  }
+  $('fc-batch').addEventListener('change', renderForecast);
+  $('fc-week').addEventListener('change', renderForecast);
 
   /* ---------------- 02 AI 方案设计 ---------------- */
   function renderAI() {
@@ -738,6 +860,12 @@ input[type="range"] { width: 100%; }
     }).join('') + (entries.length > 6 ? `<div class="bar-row"><span class="nm">其余 ${entries.length - 6} 项</span><span class="pc">…</span></div>` : '');
   }
 
+  // 能量放松提示：国内配方不含油脂，部分定料周的能量密度达不到要求时，约束被放松并在此说明
+  function relaxNote(lp) {
+    if (!lp.neRelaxed) return '';
+    return `<div class="notice" style="margin:8px 0;">能量未达标：国内玉米–豆粕配方不含油脂，NE 约束已放松为 ${lp.perKg.ne} MJ/kg（要求 ${lp.targets.neReqPerKg}）。结果只代表氨基酸与成本的可行方案。</div>`;
+  }
+
   function groupCard(g, color) {
     if (g.lp.status !== 'optimal') {
       return `<div class="gcard"><h3><span class="dot" style="background:${color}"></span>${g.name} · ${g.n} 头</h3>
@@ -754,12 +882,13 @@ input[type="range"] { width: 100%; }
         <div><div class="k">NE 约束/采食</div>${lp.targets.neReqPerKg} MJ/kg</div>
         <div><div class="k">Lys 约束/采食</div>${lp.targets.lysReqPerKg} g/kg</div>
       </div>
+      ${relaxNote(lp)}
       ${recipeBars(lp.recipe, lp.keys)}
       <div class="kv">
         <span><span class="k">NE </span>${lp.perKg.ne} MJ/kg</span>
         <span><span class="k">Lys </span>${lp.perKg.sidLys} g/kg</span>
         <span><span class="k">CP </span>${lp.perKg.cp} g/kg</span>
-        <span><span class="k">价格 </span>${lp.perKg.price} €/t</span>
+        <span><span class="k">价格 </span>${lp.perKg.price} 元/吨</span>
         <span><span class="k">排放 </span>${lp.perKg.feedCo2e} kg CO₂e/kg</span>
         <span><span class="k">个体满足率 </span><strong>${(g.satisfaction * 100).toFixed(0)}%</strong></span>
       </div>
@@ -779,12 +908,13 @@ input[type="range"] { width: 100%; }
         <div><div class="k">约束 Lys/采食</div>${u.lysPerFI} g/kg</div>
         <div><div class="k">口径</div>${sc.requirementMode === 'strict' ? '最严格个体' : '均值+' + Math.round(sc.margin * 100) + '%'}</div>
       </div>
+      ${relaxNote(u.lp)}
       ${recipeBars(u.lp.recipe, u.lp.keys)}
       <div class="kv">
         <span><span class="k">NE </span>${u.lp.perKg.ne} MJ/kg</span>
         <span><span class="k">Lys </span>${u.lp.perKg.sidLys} g/kg</span>
         <span><span class="k">CP </span>${u.lp.perKg.cp} g/kg</span>
-        <span><span class="k">价格 </span>${u.lp.perKg.price} €/t</span>
+        <span><span class="k">价格 </span>${u.lp.perKg.price} 元/吨</span>
         <span><span class="k">排放 </span>${u.lp.perKg.feedCo2e} kg CO₂e/kg</span>
         <span><span class="k">个体满足率 </span><strong>${(u.satisfaction * 100).toFixed(0)}%</strong></span>
       </div>
@@ -802,7 +932,7 @@ input[type="range"] { width: 100%; }
     const satG = sc.groups.reduce((s, x) => s + x.n * x.satisfaction, 0) / 100;
     box.innerHTML = `
       <div class="vs-head"><div>项目（栏舍 100 头 · 每天合计）</div><div>分层饲喂（${sc.k} 组）</div><div>一刀切饲喂</div><div>差异（分层−一刀切）</div></div>
-      <div class="vs-row"><div>饲料成本（€/天）</div><div>${g.costPerDay.toFixed(2)}</div><div>${u.costPerDay.toFixed(2)}</div><div class="${fmtCls(d.costPerDay)}">${(d.costPerDay > 0 ? '+' : '') + d.costPerDay}</div></div>
+      <div class="vs-row"><div>饲料成本（元/天）</div><div>${g.costPerDay.toFixed(2)}</div><div>${u.costPerDay.toFixed(2)}</div><div class="${fmtCls(d.costPerDay)}">${(d.costPerDay > 0 ? '+' : '') + d.costPerDay}</div></div>
       <div class="vs-row"><div>N 排泄（kg/天）</div><div>${g.nExcretedKgDay.toFixed(2)}</div><div>${u.nExcretedKgDay.toFixed(2)}</div><div class="${fmtCls(d.nExcretedKgDay)}">${(d.nExcretedKgDay > 0 ? '+' : '') + d.nExcretedKgDay}</div></div>
       <div class="vs-row"><div>模型化排放（kg CO₂e/天）</div><div>${g.emissionsPerDay.toFixed(2)}</div><div>${u.emissionsPerDay.toFixed(2)}</div><div class="${fmtCls(d.emissionsPerDay)}">${(d.emissionsPerDay > 0 ? '+' : '') + d.emissionsPerDay}</div></div>
       <div class="vs-row vs-delta"><div>每头每天排放（kg CO₂e）</div><div>${(g.emissionsPerDay / 100).toFixed(4)}</div><div>${(u.emissionsPerDay / 100).toFixed(4)}</div><div class="${fmtCls(d.emissionsPerDay)}">${(d.emissionsPerDay / 100 > 0 ? '+' : '') + (d.emissionsPerDay / 100).toFixed(4)}</div></div>
@@ -832,7 +962,7 @@ input[type="range"] { width: 100%; }
       html += `<text x="${m.l - 8}" y="${Y(vy) + 4}" text-anchor="end">${vy.toFixed(3)}</text>`;
       html += `<text x="${X(vx)}" y="${height - m.b + 16}" text-anchor="middle">${vx.toFixed(3)}</text>`;
     }
-    html += `<text x="${(m.l + width - m.r) / 2}" y="${height - 6}" text-anchor="middle">饲料成本（€/kg）</text>`;
+    html += `<text x="${(m.l + width - m.r) / 2}" y="${height - 6}" text-anchor="middle">饲料成本（元/kg）</text>`;
     html += `<text x="14" y="${height / 2}" transform="rotate(-90 14 ${height / 2})" text-anchor="middle">饲料碳足迹（kg CO₂e/kg）</text>`;
     html += `<path d="${pts.map((p, i) => (i === 0 ? 'M' : 'L') + X(p.costPerKg).toFixed(1) + ' ' + Y(p.co2ePerKg).toFixed(1)).join(' ')}" fill="none" stroke="var(--violet)" stroke-width="2"/>`;
     for (const p of pts) {
@@ -847,7 +977,7 @@ input[type="range"] { width: 100%; }
     const sel = pts.reduce((best, p) => (Math.abs(p.w - a.w) < Math.abs(best.w - a.w) ? p : best), pts[0]);
     box.innerHTML = `<div class="kv" style="margin-top:10px;">
         <span><span class="k">选中权重 </span>${Math.round((1 - sel.w) * 100)}% 成本 / ${Math.round(sel.w * 100)}% 排放</span>
-        <span><span class="k">成本 </span>${sel.costPerKg.toFixed(4)} €/kg</span>
+        <span><span class="k">成本 </span>${sel.costPerKg.toFixed(4)} 元/kg</span>
         <span><span class="k">碳足迹 </span>${sel.co2ePerKg} kg CO₂e/kg</span>
       </div>
       <div style="max-width:420px;margin-top:8px;">${recipeBars(sel.recipe, Object.keys(sel.recipe))}</div>
@@ -897,8 +1027,8 @@ input[type="range"] { width: 100%; }
     const box = $('cmp-table');
     $('cc-feed').innerHTML = input.feedIntakeKgDay + ' <small>kg/天</small>';
     $('cc-adg').innerHTML = P.mechanism.adg_kg_day + ' <small>kg/天</small>';
-    $('cc-manure').textContent = (input.manureSystem === 'lagoon' ? '厌氧塘' : '液态储存') + ' · ' + (input.climate === 'temperate' ? '温带' : '凉爽');
-    $('cc-req').textContent = '示范要求曲线（参数显式录入）';
+    $('cc-manure').textContent = P.manure.systems[input.manureSystem].name + ' · ' + P.manure.mcf[input.climate].name;
+    $('cc-req').textContent = '显式要求曲线（参数见来源页）';
 
     if (result.status === 'incomplete') {
       box.innerHTML = '<div class="notice" style="grid-column:1/-1;">缺输入：' + result.completeness.missing.map((m) => m.field).join('；') + '</div>';
@@ -933,8 +1063,8 @@ input[type="range"] { width: 100%; }
     const rows = [
       ['A/B 配比', (c) => `${Math.round(c.ratioA * 100)}% / ${Math.round((1 - c.ratioA) * 100)}%`],
       ['营养约束', (c) => c.check.ne.pass && c.check.sidLys.pass && c.check.cp.pass ? '<span class="pass">全部满足</span>' : '<span class="fail">存在不足</span>'],
-      ['饲料价格（欧元/吨）', (c) => fmt(c.diet.price, 2)],
-      ['饲料成本（欧元/头/天）', (c) => fmt(c.costPerHeadDay, 3)],
+      ['饲料价格（元/吨）', (c) => fmt(c.diet.price, 2)],
+      ['饲料成本（元/头/天）', (c) => fmt(c.costPerHeadDay, 3)],
       ['N 摄入（g/天）', (c) => fmt(c.nIntake, 1)],
       ['N 排泄（g/天）', (c) => fmt(c.nExcreted, 1)],
       ['粪污 CH₄（kg CO₂e/头/天）', (c) => fmt(c.emissions.manureCh4, 3)],
@@ -964,9 +1094,10 @@ input[type="range"] { width: 100%; }
     const variants = [];
     for (const factor of [0.8, 1.2]) {
       const p2 = JSON.parse(JSON.stringify(P));
-      p2.manure.mcf_slurry_temperate *= factor;
-      p2.manure.mcf_slurry_cool *= factor;
-      p2.manure.mcf_anaerobic_lagoon *= factor;
+      p2.manure.mcf.warm_moist.liquid3m *= factor;
+      p2.manure.mcf.warm_moist.lagoon *= factor;
+      p2.manure.mcf.cool_moist.liquid3m *= factor;
+      p2.manure.mcf.cool_moist.lagoon *= factor;
       const resCur = E.evaluate(input, cur.ratioA, p2);
       const resCand = E.evaluate(input, cand.ratioA, p2);
       variants.push({
@@ -1000,10 +1131,10 @@ input[type="range"] { width: 100%; }
 
   function renderManureScenarios(input, cand) {
     const scenarios = [
-      { sys: 'slurry', cli: 'temperate', label: '液态储存 · 温带' },
-      { sys: 'slurry', cli: 'cool', label: '液态储存 · 凉爽' },
-      { sys: 'lagoon', cli: 'temperate', label: '厌氧塘 · 温带' },
-      { sys: 'lagoon', cli: 'cool', label: '厌氧塘 · 凉爽' },
+      { sys: 'slurry_nocrust', cli: 'warm_moist', label: '液态储存（无结壳）· 温暖湿润' },
+      { sys: 'slurry_nocrust', cli: 'cool_moist', label: '液态储存（无结壳）· 凉爽湿润' },
+      { sys: 'lagoon', cli: 'warm_moist', label: '厌氧塘（无覆盖）· 温暖湿润' },
+      { sys: 'lagoon', cli: 'cool_moist', label: '厌氧塘（无覆盖）· 凉爽湿润' },
     ];
     const fmt = (x, d) => Number(x).toFixed(d == null ? 3 : d);
     $('manure-scenarios').innerHTML = '<table><thead><tr><th>粪污情景</th><th class="num">MCF</th><th class="num">粪污 CH₄（kg CO₂e/头/天）</th><th class="num">粪污 N₂O</th><th class="num">饲料生产</th><th class="num">可核算合计</th></tr></thead><tbody>'
@@ -1026,7 +1157,7 @@ input[type="range"] { width: 100%; }
     $('herd-table').innerHTML = '<table><thead><tr><th>项目（栏舍合计）</th><th class="num">当前方案</th><th class="num">候选方案</th><th class="num">差异（候选−当前）</th></tr></thead><tbody>'
       + `<tr><td>头数</td><td class="num">${hC.headCount}</td><td class="num">${hK.headCount}</td><td class="num">—</td></tr>`
       + `<tr><td>耗料量（t/天）</td><td class="num">${fmt(hC.feedTonnesDay, 3)}</td><td class="num">${fmt(hK.feedTonnesDay, 3)}</td><td class="num">—</td></tr>`
-      + `<tr><td>饲料成本（€/天）</td><td class="num">${fmt(hC.costPerDay)}</td><td class="num">${fmt(hK.costPerDay)}</td><td class="num">${cell(dCost)}</td></tr>`
+      + `<tr><td>饲料成本（元/天）</td><td class="num">${fmt(hC.costPerDay)}</td><td class="num">${fmt(hK.costPerDay)}</td><td class="num">${cell(dCost)}</td></tr>`
       + `<tr><td>N 排泄（kg/天）</td><td class="num">${fmt(hC.nExcretedKgDay)}</td><td class="num">${fmt(hK.nExcretedKgDay)}</td><td class="num">${cell(dN)}</td></tr>`
       + `<tr><td>排放合计（kg CO₂e/天）</td><td class="num">${fmt(hC.emissions.total)}</td><td class="num">${fmt(hK.emissions.total)}</td><td class="num">${cell(dEm)}</td></tr>`
       + '</tbody></table>';
@@ -1038,24 +1169,25 @@ input[type="range"] { width: 100%; }
     $('evidence-table').innerHTML = [
       ['生长与采食记录', '已接入', 'Zenodo 6626445（Lenoir 等，2022），CC BY 4.0，MD5 18af2d0b87fe0d020c5190019cff921b。100 头猪 × 前 76 天；层级：个体。不含日粮营养或实测排放字段。'],
       ['AI 分层方法', '已接入', 'k-means（k-means++ 初始化 + Lloyd 迭代），特征 = 平均日增重 / 平均采食量 / 采食变异系数（描述统计），z-score 标准化；固定种子 + 12 次重启，结果逐位可复现。聚类只描述历史，不做未来预测。'],
-      ['配方优化（LP）', '已接入', '两阶段单纯形法（Bland 规则，防循环），决策变量 = 7 种原料配比；约束 = 配比合计、NE、SID 赖氨酸、CP 下限、配合上限（豆油 ≤5%、赖氨酸 ≤1%、预混料 ≤0.5%）；目标 = 成本与排放加权。最优性经 4000 随机可行点与手工算例对照验证。'],
+      ['配方优化（LP）', '已接入', '两阶段单纯形法（Bland 规则，防循环），决策变量 = 7 种原料配比；约束 = 配比合计、NE、SID 赖氨酸、理想氨基酸比例（苏、蛋+胱、色、缬、异亮，相对实际赖氨酸）、合成氨基酸配合上限；能量达不到时只放松能量；目标 = 成本与排放加权。最优性经随机可行配方对照验证（tools/verify-ai.js）。'],
       ['成本–排放 Pareto 前沿', '已接入', '对权重 0→1 扫描 11 次 LP，非支配过滤后连线；展示减排—成本边际替换率。'],
       ['情景比较口径', '显式录入', '分层配方按“组均值 + 5% 安全边际”（可选“覆盖最严格个体”保守口径）；两情景每头猪使用相同体重/采食/目标增重，差异只来自配方；个体满足率 = 配方浓度 ≥ 该头严格“要求/采食”比的占比。'],
       ['能量维持公式', '已接入', P.energy.source + '。适用：随数据集发布的作者换算，正式使用应换用明确版本营养标准。'],
-      ['A/B 日粮组成与价格', '示范输入', P.diets.source + '。计量基准：原样（as-fed）；价格日期：' + input.priceDate + '（用户录入）。须营养师确认后才能用于实际决策。'],
-      ['原料表（配方 LP 用）', '示范输入', '营养量级参照 INRA-CIRAD-AFZ；排放量级参照 ECOALIM v7（Wilfart 等 2016，doi:10.1371/journal.pone.0167343）；价格量级参照 de Quelen 等 2021 报道的 IFIP 价。正式使用须逐项换用正式数据库。'],
-      ['营养要求曲线', '示范输入', P.requirements.source + '。' + P.requirements.notes],
-      ['饲料生产排放系数', '示范输入', '原料级系数按配方质量占比线性加权；口径：原料生产至配合饲料出厂，不含农场能耗；统一 GWP：IPCC AR6（CH₄=27，N₂O=273）。ECOALIM 正式系数待逐项接入。'],
-      ['粪污 CH₄', '已接入（示范参数）', 'IPCC 2019 Refinement Vol.4 Ch.10 Tier 2 结构：EF = VS × B₀ × 0.67 × MCF。示范 B₀、MCF 见参数文件；系统边界：农场内储存。'],
-      ['粪污 N₂O（直接）', '已接入（示范参数）', 'IPCC 2019 Tier 1 结构：N₂O = N 排泄 × EF₃ × 44/28。EF₃ 为示范值；未含间接 N₂O（标记为未核算）。'],
-      ['未核算项', '标记，不计零', '间接 N₂O、农场能耗、运输、兽药与动物本身、肠道发酵等未纳入；不合成完整碳足迹。'],
+      ['基础料 A/B 与价格', '待营养师确认', '基础料 A、B 的营养目标取三阶段（现行）第 1、51 天的群体营养密度（tools/derive-diets.js），配方为最低成本解。计量基准：原样（as-fed）；价格日期：' + input.priceDate + '（用户录入）。须营养师确认后才能用于实际决策。'],
+      ['国内原料表（配方 LP 用）', '待营养师确认', '成分：INRA-CIRAD-AFZ 饲料表；玉米、豆粕碳排放：ECOALIM（豆粕取巴西毁林三档情景）；价格：农业农村部畜牧兽医局 2026 年 8 月第 3 周集贸市场价（玉米、豆粕；第 2 周原文已核实，第 3 周待核实），合成氨基酸 2026-02-27 报价来源未核实。'],
+      ['营养要求曲线', '显式假设', P.requirements.source + '。' + P.requirements.notes],
+      ['饲料生产排放系数', '已标注来源', '原料级系数按配方质量占比线性加权；口径：原料生产至配合饲料出厂，不含农场能耗；统一 GWP：IPCC AR6（CH₄=27，N₂O=273）。玉米碳排放取法国数据，合成氨基酸取欧洲数据。'],
+      ['粪污 CH₄', '已接入（IPCC 表值）', 'IPCC 2019 Refinement Vol.4 Tier 2 结构：EF = VS × B₀ × 0.67 × MCF；B₀ 取表 10.16A，MCF 取表 10.17（液态储存按 3 个月）。VS 算法与氮保留量（28 g N/kg 增重）为示范假设。'],
+      ['粪污 N₂O（直接与间接）', '已接入（IPCC 表值）', '直接：N 排泄 × EF₃ × 44/28（无结壳液态储存 EF₃ = 0）；间接：挥发（FracGas × EF₄）与淋失（FracLeach × EF₅）两部分，见表 10.21、10.22、11.3。'],
+      ['未核算项', '标记，不计零', '农场能耗、运输、兽药与动物本身、肠道发酵等未纳入；不合成完整碳足迹。'],
       ['共同条件', '固定', P.meta.common_basis],
     ].map((row) => `<tr><td>${row[0]}</td><td><span class="badge ${row[1].includes('已接入') ? 'ok' : (row[1].includes('未核算') ? 'bad' : 'warn')}">${row[1]}</span></td><td>${row[2]}</td></tr>`).join('');
 
     $('validation-list').innerHTML = [
       '数据导入：100 头猪、每头前 76 天、无重复日期、无缺失字段（tools/prepare-records.js 自动检查）。',
-      '引擎核对：node tools/verify-calc.js，73 项手工复算断言全部通过（配方加权、营养要求、氮平衡、IPCC 公式、可行搜索、群体换算、无解提示、确定性）。',
-      'AI 层核对：node tools/verify-ai.js，58 项断言全部通过（LP 求解器基础算例、最优性对照 4000 随机可行点、聚类确定性、情景自洽与 k=1 归零、Pareto 单调性、保守口径无解时如实报告可达上限）。',
+      '引擎核对：node tools/verify-calc.js，65 项手工算例断言全部通过（基础料、配比混合、营养供需、氮平衡与排放、配比搜索对照穷举、群体换算、单项上限）。',
+      'AI 层核对：node tools/verify-ai.js，50 项断言全部通过（LP 求解器、配方 LP 与随机可行配方对照、聚类确定性、情景比较、Pareto 单调性）。',
+      '预测与配方核对：node tools/verify-forecast.js（19 项）、node tools/verify-formulation.js（28 项）全部通过；回放：node tools/replay-eval.js（13 批留一批、30 次重复），修正前后的结果见回放说明的“修正记录”。',
       '确定性：相同输入产生相同输出（含聚类随机性——种子化后逐位一致）。',
       '无解提示：要求超出可达上限或采食量过低时，如实显示冲突约束与探针，不输出“最优配方”。',
       '未完成：营养参数与排放系数待营养师/正式数据库确认；实际换料后的生产表现与减排效果需现场验证；聚类分组需结合栏位结构与转群计划才可落地。',
