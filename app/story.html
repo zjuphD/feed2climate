@@ -169,7 +169,7 @@ footer { padding-block: 28px 40px; font-size: 13px; color: var(--muted); }
   <div class="wrap">
     <p class="eyebrow">育肥猪精准饲喂 · 回放 13 批、100 头育肥猪的公开记录</p>
     <h1>猪的需要每天都在降，<br>喂的料却是三级台阶</h1>
-    <p class="lede">按三阶段饲喂，喂进去的赖氨酸约有 <strong id="h-share">六分之一</strong> 超出了猪的需要。多出来的蛋白变成粪里的氮，也意味着多用了进口豆粕。下面是其中一批 <span id="h-n">12</span> 头猪的进栏后 69 天。</p>
+    <p class="lede">三阶段饲喂喂进去的赖氨酸，约有 <strong id="h-share">六分之一</strong> 超出了猪的需要。多出来的变成粪里的氮，也多用了进口豆粕。下图是一批 <span id="h-n">12</span> 头猪的 69 天。</p>
 
     <div class="controls">
       <div class="seg" role="group" aria-label="喂法">
@@ -194,11 +194,11 @@ footer { padding-block: 28px 40px; font-size: 13px; color: var(--muted); }
   <div class="wrap">
     <p class="eyebrow">同一栏，100 头猪</p>
     <h2>同一栏的猪，需要并不一样</h2>
-    <p class="lede">一栏只喂一种料，浓度只能照顾吃得多、长得快的猪，于是一部分猪长期吃撑。个体饲喂站能让每头猪吃自己的料，前提是知道每头猪今天需要多少。每个点是一头猪，颜色是它进栏后 69 天平均多喂或少喂了多少。</p>
+    <p class="lede">一栏一种料，浓度只能照顾吃得多、长得快的猪，其余的长期吃撑。个体饲喂站能让每头猪吃自己的料，前提是知道它今天需要多少。每个点是一头猪，颜色是它 69 天里平均多喂或少喂了多少。</p>
     <div class="legend" id="pig-legend"></div>
     <div class="grids" id="pig-grids"></div>
     <p class="callout" id="pig-callout"></p>
-    <p class="note">三种喂法的“营养不足的猪日”都控制在 10%，只比较多喂了多少；“刚好”指平均供给在需要的 97%–110% 之间。</p>
+    <p class="note">三种喂法的营养不足猪日都控制在 10%；“刚好”指平均供给在需要的 97%–110%。</p>
   </div>
 </section>
 
@@ -214,7 +214,7 @@ footer { padding-block: 28px 40px; font-size: 13px; color: var(--muted); }
       <svg id="bars" viewBox="0 0 960 420" role="img" aria-labelledby="bars-desc"><desc id="bars-desc">各种喂法相对三阶段的变化。</desc></svg>
       <details><summary>查看数据表</summary><div class="tablewrap" id="bars-table"></div></details>
     </div>
-    <p class="note">13 批逐批留出、30 组观测噪声，营养不足的猪日对齐到 10% 后比较。能量浓度各做法相同，只比较蛋白（赖氨酸）上的决定；配方为国内玉米–豆粕加合成氨基酸。</p>
+    <p class="note">13 批逐批留出、30 组观测噪声，营养不足猪日对齐到 10% 后比较；只比较赖氨酸上的决定，能量各做法相同。</p>
   </div>
 </section>
 
@@ -222,7 +222,7 @@ footer { padding-block: 28px 40px; font-size: 13px; color: var(--muted); }
   <div class="wrap">
     <p class="eyebrow">回放</p>
     <h2>AI 只看当天以前的数据</h2>
-    <p class="lede">企业手里只有进栏体重、每三周一次抽称和每周耗料。AI 先从其余 12 批学到一般规律，再用这批猪自己的数据不断修正。拖动滑块，看每一周定料时 AI 看到了什么、预测了什么。</p>
+    <p class="lede">企业手里只有进栏体重、每三周一次抽称和每周耗料。AI 先从其余 12 批学规律，再用这批猪自己的数据修正。拖动滑块，看每周定料时它看到了什么。</p>
     <div class="replay">
       <div class="card">
         <div class="legend" id="rep-legend"></div>
@@ -242,7 +242,7 @@ footer { padding-block: 28px 40px; font-size: 13px; color: var(--muted); }
   <div class="wrap">
     <p class="eyebrow">规模换算</p>
     <h2>放大到一个养殖集团</h2>
-    <p class="lede">按回放得到的每头每天的变化，乘以出栏头数。只算数据覆盖的进栏后 69 天（约 32→100 kg）；整个育肥期更长，实际数字会更大。</p>
+    <p class="lede">回放得到的每头每天的变化 × 出栏头数。只算数据覆盖的 69 天（约 32→100 kg）。</p>
     <div class="calc">
       <form id="calc" onsubmit="return false">
         <div class="field"><label for="c-heads">年出栏（头）</label><input id="c-heads" type="number" min="1000" step="10000" value="1000000" inputmode="numeric"></div>
@@ -276,35 +276,39 @@ footer { padding-block: 28px 40px; font-size: 13px; color: var(--muted); }
     <div class="cols">
       <div>
         <h3>及格线（本项目设定，未经外部预先登记）</h3>
-        <p class="note" style="margin-top:0">营养不足不增加的前提下：(2) 氮减幅达到同一层级理论上限的一半；(3) 比最好的简单方法至少多降 3 个百分点。结果如实列出。</p>
+        <p class="note" style="margin-top:0">营养不足不增加的前提下：(2) 氮减幅达到同层级理论上限的一半；(3) 比最好的简单方法至少多降 3 个百分点。</p>
         <div class="tablewrap" id="verdicts"></div>
         <h3 style="margin-top:22px">预测误差</h3>
         <div class="tablewrap" id="errors"></div>
       </div>
       <div>
-        <h3>怎么验证的</h3>
+        <h3>局限</h3>
         <ul class="plain">
-          <li>把逐头逐日的研究数据降级成企业版：进栏称重、每 3 周抽称（加 3% 误差）、每周耗料（加 4% 误差），饲料提前 3 天定。</li>
-          <li>13 批逐批留出：用其余 12 批学规律，只用当时看得到的数据排料，再用完整数据逐头逐日打分；重复 30 组观测噪声。</li>
-          <li>配方：玉米–豆粕加合成氨基酸，按理想蛋白比例约束苏、蛋+胱、色、缬、异亮，最低原料成本。</li>
-          <li>排放：饲料碳排放 + 粪污甲烷 + 直接与间接氧化亚氮（IPCC 2019；液态储存无自然结壳、温暖湿润地区）。</li>
+          <li>13 批按猪栏编号前缀划分；数据页未注明测定站与品种，批间差异是否比商品猪场小无法确定。这是方法演示，不是现场效果。</li>
+          <li>“理论上限”用整段数据事后平滑得到；少喂蛋白后生长会不会变慢，没有模拟。</li>
+          <li>需要量和理想比例取文献值，未按国内品种校准；玉米与合成氨基酸的碳排放取欧洲数据。</li>
+          <li>第一个定料周（第 1–7 天）国内配方不含油脂，能量只能达到标准的约 91%（10.11 对 11.10 MJ/kg），能量约束被放松；回放按标准表计能量，没有计入这一周的不足。</li>
+          <li>理想氨基酸比例原按目标赖氨酸计算，已改为按实际赖氨酸（标准定义）：逐头 AI（常数余量）比最好的简单方法多降的幅度由 3.1 降为 2.9 个百分点，从刚过第 (3) 条线变为未过线。同时满足两条线的做法仍然没有。修正前后的结果并列见回放说明的“修正记录”。</li>
         </ul>
-        <h3 style="margin-top:22px">来源</h3>
-        <ul class="plain">
-          <li>猪的记录：<a href="https://zenodo.org/records/6626445">Zenodo 6626445</a>（Lenoir 等 2022，CC BY 4.0），作者单位含法国 AXIOM；品种与测定站待核实</li>
-          <li>原料成分与碳排放：<a href="https://www.feedtables.com/">INRA-CIRAD-AFZ 饲料表</a>（Climate change ILCD，数据来自 ECOALIM）</li>
-          <li>理想蛋白比例：<a href="https://doi.org/10.1186/s40104-015-0016-1">van Milgen &amp; Dourmad 2015</a></li>
-          <li>粪污排放系数：<a href="https://www.ipcc-nggip.iges.or.jp/public/2019rf/vol4.html">IPCC 2019 Refinement 第 4 卷</a>（表 10.16A、10.17、10.21、10.22、11.3）</li>
-          <li>价格：玉米、豆粕为农业农村部畜牧兽医局 2026 年 8 月第 3 周全国集贸市场价（第 2 周原文已核实，第 3 周待核实）；合成氨基酸的 2026-02-27 报价来源未核实，公开前需核实</li>
-        </ul>
-        <h3 style="margin-top:22px">局限</h3>
-        <ul class="plain">
-          <li>13 批按猪栏编号前缀划分；数据页未注明测定站与品种，批间差异是否比商品猪场小无法确定；这是方法演示，不是现场效果。</li>
-          <li>“理论上限”用整段数据事后平滑得到；没有模拟少喂蛋白后生长会不会变慢，营养不足只按猪日计数。</li>
-          <li>需要量模型和理想比例取文献值，未按国内品种校准；玉米与合成氨基酸的碳排放取欧洲数据。</li>
-          <li>第一个定料周（第 1–7 天，目标第 4 天）国内配方不含油脂，能量只能达到标准的约 91%（10.11 对 11.10 MJ/kg），能量约束被放松；回放按标准表计能量，没有计入这一周的能量不足。</li>
-          <li>理想氨基酸比例按实际赖氨酸计算（理想蛋白的标准定义）。修正前按目标赖氨酸计算：逐头 AI（常数余量）比最好的简单方法多降 3.1 个百分点，刚过第 (3) 条及格线；修正后为 2.9 个百分点，未过线。同时满足两条及格线的做法仍然没有。修正前后的结果并列见回放说明的“修正记录”。</li>
-        </ul>
+        <details>
+          <summary>怎么验证的</summary>
+          <ul class="plain">
+            <li>把逐头逐日的研究数据降级成企业版：进栏称重、每 3 周抽称（加 3% 误差）、每周耗料（加 4% 误差），饲料提前 3 天定。</li>
+            <li>13 批逐批留出：用其余 12 批学规律，只用当时看得到的数据排料，再用完整数据逐头逐日打分；重复 30 组观测噪声。</li>
+            <li>配方：玉米–豆粕加合成氨基酸，按理想蛋白比例约束苏、蛋+胱、色、缬、异亮，最低原料成本。</li>
+            <li>排放：饲料碳排放 + 粪污甲烷 + 直接与间接氧化亚氮（IPCC 2019；液态储存无自然结壳、温暖湿润地区）。</li>
+          </ul>
+        </details>
+        <details>
+          <summary>数据与参数来源</summary>
+          <ul class="plain">
+            <li>猪的记录：<a href="https://zenodo.org/records/6626445">Zenodo 6626445</a>（Lenoir 等 2022，CC BY 4.0），作者单位含法国 AXIOM；品种与测定站待核实</li>
+            <li>原料成分与碳排放：<a href="https://www.feedtables.com/">INRA-CIRAD-AFZ 饲料表</a>（Climate change ILCD，数据来自 ECOALIM）</li>
+            <li>理想蛋白比例：<a href="https://doi.org/10.1186/s40104-015-0016-1">van Milgen &amp; Dourmad 2015</a></li>
+            <li>粪污排放系数：<a href="https://www.ipcc-nggip.iges.or.jp/public/2019rf/vol4.html">IPCC 2019 Refinement 第 4 卷</a>（表 10.16A、10.17、10.21、10.22、11.3）</li>
+            <li>价格：玉米、豆粕为农业农村部畜牧兽医局 2026 年 8 月第 3 周全国集贸市场价（第 2 周原文已核实，第 3 周待核实）；合成氨基酸的 2026-02-27 报价来源未核实</li>
+          </ul>
+        </details>
       </div>
     </div>
   </div>
@@ -597,7 +601,7 @@ footer { padding-block: 28px 40px; font-size: 13px; color: var(--muted); }
   let metric = 'nEx';
   const seg = $('metric-seg');
   METRICS.forEach((m) => { const b = document.createElement('button'); b.type = 'button'; b.textContent = m.name; b.setAttribute('aria-pressed', String(m.k === metric)); b.addEventListener('click', () => { metric = m.k; seg.querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); drawBars(); }); seg.appendChild(b); });
-  $('ladder-lede').textContent = '完全知道每头猪的需要，逐头饲喂能比三阶段少排 ' + pct(-LD.I4.nEx, 0) + ' 的氮。常规的滚动估计只兑现了 ' + pct(-LD.I2.nEx) + '，还不如每周按表调（' + pct(-LD.P1.nEx) + '）；AI 预测兑现了 ' + pct(-LD.I3.nEx) + '。按批调整时，AI 和查表持平：这批测定站猪的批间差别太小，按批个性化没有空间。';
+  $('ladder-lede').textContent = '完全知道每头猪的需要，逐头饲喂能比三阶段少排 ' + pct(-LD.I4.nEx, 0) + ' 的氮。常规的滚动估计只兑现了 ' + pct(-LD.I2.nEx) + '，还不如每周按表调（' + pct(-LD.P1.nEx) + '）；AI 预测兑现了 ' + pct(-LD.I3.nEx) + '。按批调整时，AI 和查表持平。';
   function drawBars() {
     const svg = $('bars'); clear(svg);
     const m = METRICS.find((x) => x.k === metric);
@@ -701,7 +705,7 @@ footer { padding-block: 28px 40px; font-size: 13px; color: var(--muted); }
     row('实际体重', wk.truthBw.toFixed(1) + ' kg');
     row('看得到的抽称', wk.seenWeighings.length + ' 次');
     row('看得到的耗料', wk.seenFeedWeeks + ' 周');
-    const p2 = document.createElement('p'); p2.className = 'note'; p2.textContent = '这里显示的是未加安全余量的预测值。两次抽称之间，AI 用每周耗料推算体重；新的抽称一到，预测范围立刻收窄。';
+    const p2 = document.createElement('p'); p2.className = 'note'; p2.textContent = '显示的是未加安全余量的预测值；新的抽称一到，预测范围就收窄。';
     side.append(p1, big, dl, p2);
   }
   const slider = $('rep-week');
