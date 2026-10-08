@@ -6,7 +6,7 @@ This statement lists every data source, what each one is used for, its license, 
 
 | Data | Used for | Source and license | Status |
 |---|---|---|---|
-| Growth and feed records: 100 growing–finishing boars, 13 batches (4–14 pigs each), 2020, one test station, one breed; daily body weight and feed intake for days 1–76 (days 1–69 used) | Forecast training and replay evaluation; the "history" page | Zenodo record 6626445 (Lenoir et al., 2022), CC BY 4.0, MD5 `18af2d0b87fe0d020c5190019cff921b`. Attribution is shown in the tool (sources page) and the story page. | Structure checked by `tools/prepare-records.js`; checksum as recorded in `demo_sources/zenodo_6626445/SOURCE.md` (not re-computed in this review) |
+| Growth and feed records: 100 fattening pigs (file fields: ID, day t, median weight Wt, feed intake FIt); grouped into 13 batches by pen-code prefix (4–14 pigs each); days 1–76 in the file, days 1–69 used. The data page does not state breed, test station or year. Authors' affiliations include AXIOM (Azay-sur-Indre, France). A related paper (Animal – Open Space, 2022) is reported to describe Piétrain pigs tested at AXIOM in 2020; **not yet checked against the paper.** | Forecast training and replay evaluation; the "history" page | Zenodo record 6626445 (Lenoir et al., 2022), CC BY 4.0, MD5 `18af2d0b87fe0d020c5190019cff921b`. Attribution is shown in the tool (sources page) and the story page. | Structure checked by `tools/prepare-records.js`; checksum as recorded in `demo_sources/zenodo_6626445/SOURCE.md` (not re-computed in this review) |
 | Energy maintenance conversion (NE = 1.05 × 0.74 × BW^0.6) and energy-to-gain framework | Requirements and forecast | Data authors' script `DLM_script.R`, distributed with Zenodo 6626445 | Taken from the parameter file's citation; the script itself not re-read in this review |
 | Feed composition and carbon values for corn, soybean meal, synthetic amino acids | Ration formulation and feed emissions | INRA-CIRAD-AFZ feed tables (feedtables.com); carbon values are labelled "Climate change (ILCD)" and attributed to ECOALIM (Wilfart et al., 2016, doi:10.1371/journal.pone.0167343) | Not re-checked line by line in this review. **Needs nutritionist and data-owner review.** |
 | Soybean-meal deforestation scenarios (0.541 / 1.138 / 1.690 kg CO₂e/kg) | Sensitivity of feed emissions | Same feed-table source | As above |
@@ -34,13 +34,13 @@ This statement lists every data source, what each one is used for, its license, 
 ## 3. Evaluation
 
 - Method: leave-one-batch-out replay. For each of the 13 batches, the forecast uses only the other 12 batches for learning and only observations available on the decision day.
-- Replicates: 30 observation-noise draws; success criteria fixed in advance (`docs/replay/README.md`).
+- Replicates: 30 observation-noise draws; success criteria set in our replay code, not externally pre-registered (`docs/replay/README.md`).
 - Results (undernourished-pig-day rate matched at 10%, relative to three-phase feeding): see `docs/replay/README.md` and `docs/validation_plan.md`.
 - Forecast interval coverage: body weight 86.2%, feed intake 94.6% (130 cases). Body-weight intervals are too narrow for a 95% claim.
 
 ## 4. Known limitations of the data and the AI
 
-- One test station and one breed. Batches are small (4–14 pigs). Between-batch differences are likely smaller than on commercial farms.
+- Public data from 100 fattening pigs; the data page does not state breed or test station, so generalisation to commercial pigs is untested. Batches are small (4–14 pigs). Between-batch differences are likely smaller than on commercial farms.
 - The "true" target value used for scoring is a smoothed full-record estimate, not a direct measurement.
 - Lysine requirements and ideal-protein ratios are literature values, not recalibrated to Chinese genetics or feed.
 - Energy is taken from the standard table in the replay. In week one, the corn–soybean meal ration cannot meet the energy standard without fat (about 91% achieved). The tool shows this; the replay does not count it.

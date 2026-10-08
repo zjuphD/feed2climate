@@ -167,7 +167,7 @@ footer { padding-block: 28px 40px; font-size: 13px; color: var(--muted); }
 <main>
 <section id="waste">
   <div class="wrap">
-    <p class="eyebrow">育肥猪精准饲喂 · 回放 2020 年 13 批、100 头猪的真实记录</p>
+    <p class="eyebrow">育肥猪精准饲喂 · 回放 13 批、100 头育肥猪的公开记录</p>
     <h1>猪的需要每天都在降，<br>喂的料却是三级台阶</h1>
     <p class="lede">按三阶段饲喂，喂进去的赖氨酸约有 <strong id="h-share">六分之一</strong> 超出了猪的需要。多出来的蛋白变成粪里的氮，也意味着多用了进口豆粕。下面是其中一批 <span id="h-n">12</span> 头猪的进栏后 69 天。</p>
 
@@ -275,7 +275,7 @@ footer { padding-block: 28px 40px; font-size: 13px; color: var(--muted); }
     <h2>每个数字都能追溯</h2>
     <div class="cols">
       <div>
-        <h3>事先定好的及格线</h3>
+        <h3>及格线（本项目设定，未经外部预先登记）</h3>
         <p class="note" style="margin-top:0">营养不足不增加的前提下：(2) 氮减幅达到同一层级理论上限的一半；(3) 比最好的简单方法至少多降 3 个百分点。结果如实列出。</p>
         <div class="tablewrap" id="verdicts"></div>
         <h3 style="margin-top:22px">预测误差</h3>
@@ -291,7 +291,7 @@ footer { padding-block: 28px 40px; font-size: 13px; color: var(--muted); }
         </ul>
         <h3 style="margin-top:22px">来源</h3>
         <ul class="plain">
-          <li>猪的记录：<a href="https://zenodo.org/records/6626445">Zenodo 6626445</a>（Lenoir 等 2022，CC BY 4.0），法国 AXIOM 测定站皮特兰公猪</li>
+          <li>猪的记录：<a href="https://zenodo.org/records/6626445">Zenodo 6626445</a>（Lenoir 等 2022，CC BY 4.0），作者单位含法国 AXIOM；品种与测定站待核实</li>
           <li>原料成分与碳排放：<a href="https://www.feedtables.com/">INRA-CIRAD-AFZ 饲料表</a>（Climate change ILCD，数据来自 ECOALIM）</li>
           <li>理想蛋白比例：<a href="https://doi.org/10.1186/s40104-015-0016-1">van Milgen &amp; Dourmad 2015</a></li>
           <li>粪污排放系数：<a href="https://www.ipcc-nggip.iges.or.jp/public/2019rf/vol4.html">IPCC 2019 Refinement 第 4 卷</a>（表 10.16A、10.17、10.21、10.22、11.3）</li>
@@ -299,7 +299,7 @@ footer { padding-block: 28px 40px; font-size: 13px; color: var(--muted); }
         </ul>
         <h3 style="margin-top:22px">局限</h3>
         <ul class="plain">
-          <li>13 批来自同一测定站、同一品系的公猪，批间差异比商品猪场小；这是方法演示，不是现场效果。</li>
+          <li>13 批按猪栏编号前缀划分；数据页未注明测定站与品种，批间差异是否比商品猪场小无法确定；这是方法演示，不是现场效果。</li>
           <li>“理论上限”用整段数据事后平滑得到；没有模拟少喂蛋白后生长会不会变慢，营养不足只按猪日计数。</li>
           <li>需要量模型和理想比例取文献值，未按国内品种校准；玉米与合成氨基酸的碳排放取欧洲数据。</li>
           <li>第一个定料周（第 1–7 天，目标第 4 天）国内配方不含油脂，能量只能达到标准的约 91%（10.11 对 11.10 MJ/kg），能量约束被放松；回放按标准表计能量，没有计入这一周的能量不足。</li>
@@ -597,7 +597,7 @@ footer { padding-block: 28px 40px; font-size: 13px; color: var(--muted); }
   let metric = 'nEx';
   const seg = $('metric-seg');
   METRICS.forEach((m) => { const b = document.createElement('button'); b.type = 'button'; b.textContent = m.name; b.setAttribute('aria-pressed', String(m.k === metric)); b.addEventListener('click', () => { metric = m.k; seg.querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); drawBars(); }); seg.appendChild(b); });
-  $('ladder-lede').textContent = '完全知道每头猪的需要，逐头饲喂能比三阶段少排 ' + pct(-LD.I4.nEx, 0) + ' 的氮，和国外对照试验的约 30% 相近。常规的滚动估计只兑现了 ' + pct(-LD.I2.nEx) + '，还不如每周按表调（' + pct(-LD.P1.nEx) + '）；AI 预测兑现了 ' + pct(-LD.I3.nEx) + '。按批调整时，AI 和查表持平：这批测定站猪的批间差别太小，按批个性化没有空间。';
+  $('ladder-lede').textContent = '完全知道每头猪的需要，逐头饲喂能比三阶段少排 ' + pct(-LD.I4.nEx, 0) + ' 的氮。常规的滚动估计只兑现了 ' + pct(-LD.I2.nEx) + '，还不如每周按表调（' + pct(-LD.P1.nEx) + '）；AI 预测兑现了 ' + pct(-LD.I3.nEx) + '。按批调整时，AI 和查表持平：这批测定站猪的批间差别太小，按批个性化没有空间。';
   function drawBars() {
     const svg = $('bars'); clear(svg);
     const m = METRICS.find((x) => x.k === metric);

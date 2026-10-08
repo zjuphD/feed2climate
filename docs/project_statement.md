@@ -4,7 +4,7 @@
 
 ## Problem
 
-Growing–finishing pigs' nutrient requirements change every day with body weight and feed intake, but most farms change feed in fixed phases. In a replay of 13 batches (100 pigs, one test station), three-phase feeding supplied about 20% more lysine than the pigs needed, at a matched rate of 10% undernourished pig-days. The excess protein is excreted as nitrogen, and the extra soybean meal carries feed-chain emissions.
+Growing–finishing pigs' nutrient requirements change every day with body weight and feed intake, but most farms change feed in fixed phases. In a replay of 13 batches (100 fattening pigs, public records), three-phase feeding supplied about 20% more lysine than the pigs needed, at a matched rate of 10% undernourished pig-days. The excess protein is excreted as nitrogen, and the extra soybean meal carries feed-chain emissions.
 
 ## Users
 
@@ -35,7 +35,7 @@ Farm energy, transport, enteric methane and animal-level effects are not counted
 
 ## Validation
 
-Leave-one-batch-out replay over 13 batches with 30 observation-noise replicates, with success criteria fixed before results were examined (see `docs/replay/README.md`). Neither AI variant met both criteria. The per-pig AI beat the best simple method by 2.9 percentage points, just short of the required 3.0, and its 13.0% nitrogen reduction was below half of the 34.4% upper bound (17.2% required). The replay is a method demonstration on one test station and one breed; it is not field evidence.
+Leave-one-batch-out replay over 13 batches with 30 observation-noise replicates, with success criteria set in our replay code (not externally pre-registered) (see `docs/replay/README.md`). None of the four AI variants met both criteria. The per-pig AI beat the best simple method by 2.9 percentage points, just short of the required 3.0, and its 13.0% nitrogen reduction was below half of the 34.4% upper bound (17.2% required). The replay is a method demonstration on public records of 100 fattening pigs; it is not field evidence.
 
 A correction is recorded there as well: the ideal-protein ratios were originally computed against target lysine rather than actual lysine. The correction changed the per-pig margin from 3.1 to 2.9 points, and it is reported before and after.
 

@@ -45,13 +45,13 @@ Replay evaluation (13 batches, 30 replicates; see `docs/replay/README.md`):
 | Modeled CO₂e vs three-phase | −2.1% (AI) = −2.1% (lookup) | −2.8% (AI) vs −1.4% (rolling) |
 | Feed cost vs three-phase | −0.8% (AI) = −0.8% (lookup) | −1.1% (AI) vs −0.5% (rolling) |
 
-Forecast interval coverage (130 leave-one-batch-out cases): body weight 86.2% of observations inside the stated 95% interval; feed intake 94.6%.
+Forecast interval coverage (130 leave-one-batch-out cases): body weight 86.2% of observations inside the stated 95% interval; feed intake 94.6% (reproduce with `node tools/forecast-coverage.js`).
 
-Pre-registered criteria (see replay README): neither AI variant met both criteria.
+Success criteria set in our replay code (not externally pre-registered; see replay README): none of the four AI variants met both.
 
 ## Evaluation data
 
-Public records: Zenodo 6626445 (Lenoir et al., 2022), CC BY 4.0. Single test station, single breed, 13 batches (4–14 pigs each). Evaluation used days 1–69.
+Public records: Zenodo 6626445 (Lenoir et al., 2022), CC BY 4.0: 100 fattening pigs, grouped into 13 batches by pen-code prefix (4–14 pigs each). The data page does not state breed, test station or year. Evaluation used days 1–69.
 
 ## Training data
 

@@ -278,7 +278,7 @@ for (const target of TARGETS) {
   }
 }
 
-// ---------- 事先定好的及格线（主比较水平 10%） ----------
+// ---------- 及格线（本项目设定；主比较水平 10%） ----------
 const S = summary[MAIN_TARGET];
 const nred = (id) => (S[id] ? -S[id].nEx : null);
 const verdicts = {};

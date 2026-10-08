@@ -16,7 +16,7 @@ node tools/verify-formulation.js   # 28 formulation checks
 node tools/replay-eval.js --json out.json   # 13-batch leave-one-batch-out replay, 30 replicates (about 1 minute)
 ```
 
-**Main replay results** (matched 10% undernourished pig-days, relative to three-phase feeding): three-phase feeding supplies 20.0% excess lysine. A batch-level AI forecast gives the same decisions as a weekly lookup table (14.0% excess lysine; −10.0% nitrogen excretion; −2.1% modeled CO₂e). Per-pig AI forecasts do better (12.0%; −13.0%; −2.8%), but neither AI variant meets both pre-registered success criteria. See `docs/replay/README.md`, including the correction record for the ideal-protein calculation.
+**Main replay results** (matched 10% undernourished pig-days, relative to three-phase feeding): three-phase feeding supplies 20.0% excess lysine. A batch-level AI forecast gives the same decisions as a weekly lookup table (14.0% excess lysine; −10.0% nitrogen excretion; −2.1% modeled CO₂e). Per-pig AI forecasts do better (12.0%; −13.0%; −2.8%), but none of the four AI variants meets both success criteria (set in our replay code; not externally pre-registered). See `docs/replay/README.md`, including the correction record for the ideal-protein calculation.
 
 **Known limitations:** no farm data yet; requirements, inclusion caps and several conversion factors are not yet confirmed by a nutritionist; amino-acid prices are not verified; the 95% body-weight interval covers about 86% of observations; corn and soybean meal alone cannot meet the energy standard in the first feeding week (no added fat).
 
